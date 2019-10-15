@@ -16,10 +16,12 @@ namespace SW.Bus
         private readonly IServiceProvider sp;
         private readonly ILogger<ConsumersService> logger;
 
-        public ConsumersService(IServiceProvider sp, ILogger<ConsumersService> logger)
+        public ConsumersService(IServiceProvider sp)
         {
             this.sp = sp;
-            this.logger = logger;
+            
+            logger = sp.GetService<ILoggerFactory>().CreateLogger<ConsumersService>();
+             
         }
 
 
@@ -27,11 +29,9 @@ namespace SW.Bus
         {
             var consumers = sp.GetServices<IConsume>();
 
-            var env = sp.GetRequiredService<IHostingEnvironment>();
+            var env = sp.GetRequiredService<IHostingEnvironment>().EnvironmentName;
 
-            var argd = new Dictionary<string, object> {
-                        { "x-dead-letter-exchange", $"{env.EnvironmentName}.deadletter".ToLower() }
-                        };
+            var argd = new Dictionary<string, object> {{ "x-dead-letter-exchange", $"{env}.deadletter".ToLower() }};
 
 
             foreach (var c in consumers)
@@ -42,10 +42,10 @@ namespace SW.Bus
                     try
                     {
                         var model = sp.GetRequiredService<IConnection>().CreateModel();
-                        var queueName = $"{env.EnvironmentName}.{messageType}.{c.ConsumerName}".ToLower();
+                        var queueName = $"{env}.{messageType}.{c.ConsumerName}".ToLower();
 
                         model.QueueDeclare(queueName, true, false, false, argd);
-                        model.QueueBind(queueName, $"{env.EnvironmentName}".ToLower(), messageType.ToLower(), null);
+                        model.QueueBind(queueName, $"{env}".ToLower(), messageType.ToLower(), null);
 
                         var consumer = new AsyncEventingBasicConsumer(model);
                         consumer.Received += async (ch, ea) =>
