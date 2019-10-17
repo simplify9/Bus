@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using SW.PrimitiveTypes;
 using System;
 using System.Collections.Generic;
 using System.Text;

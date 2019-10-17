@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
-
+using SW.PrimitiveTypes;
 using System;
 using System.Collections.Generic;
 using System.Text;
