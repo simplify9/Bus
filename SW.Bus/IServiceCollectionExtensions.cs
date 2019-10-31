@@ -12,7 +12,7 @@ namespace SW.Bus
     public static class IServiceCollectionExtensions
     {
 
-        public static IServiceCollection AddBusService(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddBus(this IServiceCollection services, IConfiguration configuration)
         {
             services.Configure<RabbitConfig>(configuration.GetSection(nameof(RabbitConfig)));
 
@@ -48,25 +48,24 @@ namespace SW.Bus
             return services;
         }
 
-        public static IServiceCollection AddBusPublishService(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddBusPublish(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddSingleton<IPublish, Publisher>();
             return services;
         }
 
-        public static IServiceCollection AddBusPublishMockService(this IServiceCollection services)
+        public static IServiceCollection AddBusPublishMock(this IServiceCollection services)
         {
             services.AddSingleton<IPublish, Publisher>();
             return services;
         }
 
-        public static IServiceCollection AddBusConsumeService(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddBusConsume(this IServiceCollection services, IConfiguration configuration)
         {
-            //var asminfra = typeof(IConsumer<>).Assembly;
-            //services.Scan(scan => scan
-            //    .FromAssemblies(asminfra)
-            //    .AddClasses(classes => classes.AssignableTo(typeof(IConsumer<>)))
-            //    .AsImplementedInterfaces().WithSingletonLifetime());
+            services.Scan(scan => scan
+                .FromApplicationDependencies()
+                .AddClasses(classes => classes.AssignableTo<IConsume>())
+                .AsImplementedInterfaces().WithSingletonLifetime());
 
             services.AddHostedService<ConsumersService>();
 
