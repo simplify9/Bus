@@ -57,7 +57,7 @@ namespace SW.Bus
 
                     }
 
-                    return factory.CreateConnection();
+                    return new BusConnection(factory.CreateConnection());
                 }
                 catch (Exception ex)
                 {

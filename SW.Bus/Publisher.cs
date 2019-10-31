@@ -16,9 +16,9 @@ namespace SW.Bus
         readonly IModel model;
         readonly string env;
 
-        public Publisher(IHostingEnvironment environment, IConnection connection)
+        public Publisher(IHostingEnvironment environment, BusConnection connection)
         {
-            model = connection.CreateModel();
+            model = connection.ProviderConnection.CreateModel();
             env = environment.EnvironmentName;
         }
 

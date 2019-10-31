@@ -47,7 +47,7 @@ namespace SW.Bus
                 {
                     try
                     {
-                        var model = sp.GetRequiredService<IConnection>().CreateModel();
+                        var model = sp.GetRequiredService<BusConnection>().ProviderConnection.CreateModel();
                         openModels.Add(model);
                         var queueName = $"{env.EnvironmentName}.{messageType}.{c.ConsumerName}".ToLower();
 
