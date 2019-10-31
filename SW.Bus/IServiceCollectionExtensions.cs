@@ -44,7 +44,7 @@ namespace SW.Bus
                     using (var conn = factory.CreateConnection())
                     using (var model = conn.CreateModel())
                     {
-                        
+                        logger.LogDebug($"Declaring exchange {$"{envName}".ToLower()}");  
                         model.ExchangeDeclare($"{envName}".ToLower(), ExchangeType.Direct, true);
 
                         var deadletter = $"{envName}.deadletter".ToLower();
@@ -61,6 +61,7 @@ namespace SW.Bus
                 }
                 catch (Exception ex)
                 {
+                    logger.LogError(ex, $"While '{status}', rabbit:'{rabbitUrl}'"); 
                     throw new BusException($"While '{status}', rabbit:'{rabbitUrl}'", ex) ;
                 }
             });
