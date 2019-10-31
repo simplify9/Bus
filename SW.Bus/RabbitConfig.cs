@@ -4,9 +4,9 @@ using System.Text;
 
 namespace SW.Bus
 {
-    internal  class RabbitConfig
+    internal  class RabbitMQConfig
     {
-        public RabbitConfig()
+        public RabbitMQConfig()
         {
             //ConnectionUrl = "amqp://bykcuqwb:v3wktsgit2fvAHuzkdNprwDntYsYpzQd@duckbill.rmq.cloudamqp.com/bykcuqwb";
         }

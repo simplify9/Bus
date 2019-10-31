@@ -18,7 +18,7 @@ namespace SW.Bus
 
         public static IServiceCollection AddBus(this IServiceCollection services, IConfiguration configuration)
         {
-            services.Configure<RabbitConfig>(configuration.GetSection(nameof(RabbitConfig)));
+            services.Configure<RabbitMQConfig>(configuration.GetSection(nameof(RabbitMQConfig)));
 
             services.AddSingleton(sp =>
             {
@@ -29,7 +29,7 @@ namespace SW.Bus
                 {
                     status = "reading configuration"; 
                     var envName = sp.GetRequiredService<IHostingEnvironment>().EnvironmentName;
-                    var config = sp.GetRequiredService<IOptions<RabbitConfig>>().Value;
+                    var config = sp.GetRequiredService<IOptions<RabbitMQConfig>>().Value;
                     rabbitUrl = config.ConnectionUrl;
 
                     status = "creating connection";
