@@ -26,7 +26,7 @@ namespace SW.Bus
         }
 
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        async public Task StartAsync(CancellationToken cancellationToken)
         {
 
             var consumers = sp.GetServices<IConsume>();
@@ -41,8 +41,9 @@ namespace SW.Bus
 
             foreach (var c in consumers)
             {
+                var messageTypeNames = await c.GetMessageTypeNames();
 
-                foreach (var messageType in c.MessageTypeNames)
+                foreach (var messageType in messageTypeNames)
                 {
                     try
                     {
@@ -84,7 +85,7 @@ namespace SW.Bus
                 }
             };
 
-            return Task.CompletedTask;
+            
         }
 
         public Task StopAsync(CancellationToken cancellationToken)

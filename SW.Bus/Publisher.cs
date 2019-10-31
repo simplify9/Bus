@@ -6,6 +6,7 @@ using SW.PrimitiveTypes;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace SW.Bus
 {
@@ -27,20 +28,23 @@ namespace SW.Bus
             model.Dispose();
         }
 
-        public void Publish<TMessage>(TMessage message)
+        public Task Publish<TMessage>(TMessage message)
         {
             var body = JsonConvert.SerializeObject(message);
             Publish(message.GetType().Name, body);
+            return Task.CompletedTask;
         }
-        public void Publish(string messageTypeName, string message)
+        public Task Publish(string messageTypeName, string message)
         {
             var body = Encoding.UTF8.GetBytes(message);
-            Publish(messageTypeName, body); 
+            Publish(messageTypeName, body);
+            return Task.CompletedTask;
         }
 
-        public void Publish(string messageTypeName, byte[] message)
+        public Task Publish(string messageTypeName, byte[] message)
         {
             model.BasicPublish($"{env}".ToLower(), messageTypeName.ToLower(), null, message);
+            return Task.CompletedTask;
 
         }
     }
