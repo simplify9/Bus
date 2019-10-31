@@ -12,27 +12,31 @@ using System.Threading.Tasks;
 
 namespace SW.Bus
 {
-    internal class ConsumersService : IHostedService
+    public class ConsumersService : IHostedService
     {
         private readonly IServiceProvider sp;
         private readonly ILogger<ConsumersService> logger;
+        private readonly ICollection<IModel> openModels;
 
-        public ConsumersService(IServiceProvider sp)
+        public ConsumersService(IServiceProvider sp, ILogger<ConsumersService> logger)
         {
             this.sp = sp;
-            
-            logger = sp.GetService<ILoggerFactory>().CreateLogger<ConsumersService>();
-             
+            this.logger = logger;
+            openModels = new List<IModel>();
         }
 
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
+
             var consumers = sp.GetServices<IConsume>();
 
-            var env = sp.GetRequiredService<IHostingEnvironment>().EnvironmentName;
+            var env = sp.GetRequiredService<IHostingEnvironment>();
 
-            var argd = new Dictionary<string, object> {{ "x-dead-letter-exchange", $"{env}.deadletter".ToLower() }};
+            var argd = new Dictionary<string, object>
+            {
+                { "x-dead-letter-exchange", $"{env.EnvironmentName}.deadletter".ToLower() }
+            };
 
 
             foreach (var c in consumers)
@@ -43,10 +47,11 @@ namespace SW.Bus
                     try
                     {
                         var model = sp.GetRequiredService<IConnection>().CreateModel();
-                        var queueName = $"{env}.{messageType}.{c.ConsumerName}".ToLower();
+                        openModels.Add(model);
+                        var queueName = $"{env.EnvironmentName}.{messageType}.{c.ConsumerName}".ToLower();
 
                         model.QueueDeclare(queueName, true, false, false, argd);
-                        model.QueueBind(queueName, $"{env}".ToLower(), messageType.ToLower(), null);
+                        model.QueueBind(queueName, $"{env.EnvironmentName}".ToLower(), messageType.ToLower(), null);
 
                         var consumer = new AsyncEventingBasicConsumer(model);
                         consumer.Received += async (ch, ea) =>
@@ -67,6 +72,8 @@ namespace SW.Bus
                             }
                         };
                         string consumerTag = model.BasicConsume(queueName, false, consumer);
+
+
                     }
 
 
@@ -80,18 +87,17 @@ namespace SW.Bus
             return Task.CompletedTask;
         }
 
-        async public Task StopAsync(CancellationToken cancellationToken)
+        public Task StopAsync(CancellationToken cancellationToken)
         {
-            var consumers = sp.GetServices<IConsume>();
-            //try
-            //{
-            //    model.Close();
-            //    model.Dispose();
-            //}
-            //catch (Exception ex)
-            //{
-            //    logger.LogError(ex, $"Failed to stop consumer: {typeof(TMessage).Name}, {Name}.");
-            //}
+            foreach (var model in openModels)
+            {
+                model.Close();
+                model.Dispose();
+            }
+
+
+            return Task.CompletedTask;
+
         }
     }
 }
