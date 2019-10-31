@@ -48,7 +48,7 @@ namespace SW.Bus
             return services;
         }
 
-        public static IServiceCollection AddBusPublish(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddBusPublish(this IServiceCollection services)
         {
             services.AddSingleton<IPublish, Publisher>();
             return services;
@@ -60,7 +60,7 @@ namespace SW.Bus
             return services;
         }
 
-        public static IServiceCollection AddBusConsume(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddBusConsume(this IServiceCollection services)
         {
             services.Scan(scan => scan
                 .FromApplicationDependencies()
