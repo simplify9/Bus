@@ -30,7 +30,7 @@ namespace SW.Bus
 
         public Task Publish<TMessage>(TMessage message)
         {
-            var body = JsonConvert.SerializeObject(message);
+            var body = JsonConvert.SerializeObject(message, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
             Publish(message.GetType().Name, body);
             return Task.CompletedTask;
         }
