@@ -25,10 +25,8 @@ namespace SW.Bus
             openModels = new List<IModel>();
         }
 
-
         async public Task StartAsync(CancellationToken cancellationToken)
         {
-
             var consumers = sp.GetServices<IConsume>();
 
             var env = sp.GetRequiredService<IHostingEnvironment>();
@@ -38,62 +36,71 @@ namespace SW.Bus
                 { "x-dead-letter-exchange", $"{env.EnvironmentName}.deadletter".ToLower() }
             };
 
-
             foreach (var c in consumers)
             {
-                var messageTypeNames = await c.GetMessageTypeNames();
-
-                foreach (var messageType in messageTypeNames)
+                try
                 {
-                    try
+                    var messageTypeNames = await c.GetMessageTypeNames();
+
+                    foreach (var messageType in messageTypeNames)
                     {
-                        var model = sp.GetRequiredService<BusConnection>().ProviderConnection.CreateModel();
-                        openModels.Add(model);
-                        var queueName = $"{env.EnvironmentName}.{messageType}.{c.ConsumerName}".ToLower();
-
-                        model.QueueDeclare(queueName, true, false, false, argd);
-                        model.QueueBind(queueName, $"{env.EnvironmentName}".ToLower(), messageType.ToLower(), null);
-
-                        var consumer = new AsyncEventingBasicConsumer(model);
-                        consumer.Received += async (ch, ea) =>
+                        try
                         {
-                            try
+                            var model = sp.GetRequiredService<BusConnection>().ProviderConnection.CreateModel();
+                            openModels.Add(model);
+                            var queueName = $"{env.EnvironmentName}.{messageType}.{c.ConsumerName}".ToLower();
+
+                            model.QueueDeclare(queueName, true, false, false, argd);
+                            model.QueueBind(queueName, $"{env.EnvironmentName}".ToLower(), messageType.ToLower(), null);
+
+                            var consumer = new AsyncEventingBasicConsumer(model);
+                            consumer.Received += async (ch, ea) =>
                             {
-                                var body = ea.Body;
+                                try
+                                {
+                                    var body = ea.Body;
 
-                                var message = Encoding.UTF8.GetString(body);
+                                    var message = Encoding.UTF8.GetString(body);
 
-                                await c.Process(messageType, message);
-                                model.BasicAck(ea.DeliveryTag, false);
-                            }
-                            catch (Exception ex)
-                            {
-                                logger.LogError(ex, $"Failed to process consumer: {messageType}, {c.ConsumerName}.");
-                                model.BasicReject(ea.DeliveryTag, false);
-                            }
-                        };
-                        string consumerTag = model.BasicConsume(queueName, false, consumer);
-
-
+                                    await c.Process(messageType, message);
+                                    model.BasicAck(ea.DeliveryTag, false);
+                                }
+                                catch (Exception ex)
+                                {
+                                    logger.LogError(ex, $"Failed to process message: '{messageType}', for: '{c.ConsumerName}'.");
+                                    model.BasicReject(ea.DeliveryTag, false);
+                                }
+                            };
+                            string consumerTag = model.BasicConsume(queueName, false, consumer);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, $"Failed to start consumer message processing for consumer: '{c.ConsumerName}', message: '{messageType}'.");
+                        }
                     }
 
-
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, $"Failed to start consumer: {messageType}, {c.ConsumerName}.");
-                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, $"Failed to get messageTypeNames for consumer: '{c.ConsumerName}'.");
                 }
             };
-
-            
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
             foreach (var model in openModels)
             {
-                model.Close();
-                model.Dispose();
+                try
+                {
+                    model.Close();
+                    model.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, $"Failed to stop model.");
+                }
+
             }
 
 
