@@ -24,27 +24,39 @@ namespace SW.Bus
             {
                 var logger = sp.GetRequiredService<ILogger<AddBus>>();
                 string rabbitUrl = string.Empty;
-                string status = string.Empty; 
+                string status = string.Empty;
                 try
                 {
-                    status = "reading configuration"; 
-                    var envName = sp.GetRequiredService<IHostingEnvironment>().EnvironmentName;
-                    var config = sp.GetRequiredService<IOptions<RabbitMQConfig>>().Value;
-                    rabbitUrl = config.ConnectionUrl;
+                    status = "reading configuration";
+                    rabbitUrl = sp.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
+                    if (string.IsNullOrEmpty(rabbitUrl))
+                    {
+                        var config = sp.GetRequiredService<IOptions<RabbitMQConfig>>().Value;
+                        rabbitUrl = config.ConnectionUrl;
+                    }
+                    if (string.IsNullOrEmpty(rabbitUrl))
+                    {
+                        throw new ArgumentNullException("RabbitMQ");
+                    }
+
 
                     status = "creating connection";
                     ConnectionFactory factory = new ConnectionFactory
                     {
                         AutomaticRecoveryEnabled = true,
-                        Uri = new Uri(config.ConnectionUrl),
+                        Uri = new Uri(rabbitUrl),
                         DispatchConsumersAsync = true
                     };
 
+
+
                     status = "declaring exchanges";
+                    var envName = sp.GetRequiredService<IHostingEnvironment>().EnvironmentName;
+
                     using (var conn = factory.CreateConnection())
                     using (var model = conn.CreateModel())
                     {
-                        logger.LogDebug($"Declaring exchange {$"{envName}".ToLower()}");  
+                        logger.LogDebug($"Declaring exchange {$"{envName}".ToLower()}");
                         model.ExchangeDeclare($"{envName}".ToLower(), ExchangeType.Direct, true);
 
                         var deadletter = $"{envName}.deadletter".ToLower();
@@ -53,7 +65,7 @@ namespace SW.Bus
                         model.QueueBind(deadletter, deadletter, string.Empty);
 
                         model.Close();
-                        conn.Close();  
+                        conn.Close();
 
                     }
 
@@ -61,8 +73,8 @@ namespace SW.Bus
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, $"While '{status}', rabbit:'{rabbitUrl}'"); 
-                    throw new BusException($"While '{status}', rabbit:'{rabbitUrl}'", ex) ;
+                    logger.LogError(ex, $"While '{status}', rabbit:'{rabbitUrl}'");
+                    throw new BusException($"While '{status}', rabbit:'{rabbitUrl}'", ex);
                 }
             });
 
