@@ -16,9 +16,9 @@ namespace SW.Bus
     public static class IServiceCollectionExtensions
     {
 
-        public static IServiceCollection AddBus(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddBus(this IServiceCollection services)
         {
-            services.Configure<RabbitMQConfig>(configuration.GetSection(nameof(RabbitMQConfig)));
+            //services.Configure<RabbitMQConfig>(configuration.GetSection(nameof(RabbitMQConfig)));
 
             services.AddSingleton(sp =>
             {
