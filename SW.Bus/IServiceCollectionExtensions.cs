@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+
 using RabbitMQ.Client;
 using SW.PrimitiveTypes;
 using System;
@@ -29,14 +29,14 @@ namespace SW.Bus
                 {
                     status = "reading configuration";
                     rabbitUrl = sp.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
+                    //if (string.IsNullOrEmpty(rabbitUrl))
+                    //{
+                    //    var config = sp.GetRequiredService<IOptions<RabbitMQConfig>>().Value;
+                    //    rabbitUrl = config.ConnectionUrl;
+                    //}
                     if (string.IsNullOrEmpty(rabbitUrl))
                     {
-                        var config = sp.GetRequiredService<IOptions<RabbitMQConfig>>().Value;
-                        rabbitUrl = config.ConnectionUrl;
-                    }
-                    if (string.IsNullOrEmpty(rabbitUrl))
-                    {
-                        throw new ArgumentNullException("RabbitMQ");
+                        throw new BusException("Connection string named 'RabbitMQ' is required.");
                     }
 
 
