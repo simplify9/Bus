@@ -89,7 +89,7 @@ namespace SW.Bus
 
         public static IServiceCollection AddBusPublishMock(this IServiceCollection services)
         {
-            services.AddSingleton<IPublish, Publisher>();
+            services.AddSingleton<IPublish, MockPublisher>();
             return services;
         }
 
