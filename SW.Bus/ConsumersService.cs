@@ -12,29 +12,31 @@ using System.Threading.Tasks;
 
 namespace SW.Bus
 {
-    public class ConsumersService : IHostedService
+    internal class ConsumersService : IHostedService
     {
         private readonly IServiceProvider sp;
         private readonly ILogger<ConsumersService> logger;
+        private readonly ConsumerProperties consumerProperties;
         private readonly ICollection<IModel> openModels;
 
-        public ConsumersService(IServiceProvider sp, ILogger<ConsumersService> logger)
+        public ConsumersService(IServiceProvider sp, ILogger<ConsumersService> logger, ConsumerProperties consumerProperties)
         {
             this.sp = sp;
             this.logger = logger;
+            this.consumerProperties = consumerProperties;
             openModels = new List<IModel>();
         }
 
         async public Task StartAsync(CancellationToken cancellationToken)
         {
-            var consumers = sp.GetServices<IConsume>();
 
             var env = sp.GetRequiredService<IHostingEnvironment>();
-
             var argd = new Dictionary<string, object>
             {
                 { "x-dead-letter-exchange", $"{env.EnvironmentName}.deadletter".ToLower() }
             };
+
+            var consumers = sp.GetServices<IConsume>();
 
             foreach (var c in consumers)
             {
@@ -48,7 +50,7 @@ namespace SW.Bus
                         {
                             var model = sp.GetRequiredService<BusConnection>().ProviderConnection.CreateModel();
                             openModels.Add(model);
-                            var queueName = $"{env.EnvironmentName}.{messageType}.{c.ConsumerName}".ToLower();
+                            var queueName = $"{env.EnvironmentName}.{messageType}.{consumerProperties.Name}".ToLower();
 
                             model.QueueDeclare(queueName, true, false, false, argd);
                             model.QueueBind(queueName, $"{env.EnvironmentName}".ToLower(), messageType.ToLower(), null);
@@ -67,7 +69,7 @@ namespace SW.Bus
                                 }
                                 catch (Exception ex)
                                 {
-                                    logger.LogError(ex, $"Failed to process message: '{messageType}', for: '{c.ConsumerName}'.");
+                                    logger.LogError(ex, $"Failed to process message: '{messageType}', for: '{consumerProperties.Name}'.");
                                     model.BasicReject(ea.DeliveryTag, false);
                                 }
                             };
@@ -75,14 +77,14 @@ namespace SW.Bus
                         }
                         catch (Exception ex)
                         {
-                            logger.LogError(ex, $"Failed to start consumer message processing for consumer: '{c.ConsumerName}', message: '{messageType}'.");
+                            logger.LogError(ex, $"Failed to start consumer message processing for consumer: '{consumerProperties.Name}', message: '{messageType}'.");
                         }
                     }
 
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, $"Failed to get messageTypeNames for consumer: '{c.ConsumerName}'.");
+                    logger.LogError(ex, $"Failed to get messageTypeNames for consumer: '{consumerProperties.Name}'.");
                 }
             };
         }

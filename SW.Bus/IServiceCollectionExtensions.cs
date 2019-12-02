@@ -93,13 +93,19 @@ namespace SW.Bus
             return services;
         }
 
-        public static IServiceCollection AddBusConsume(this IServiceCollection services)
+        public static IServiceCollection AddBusConsume(this IServiceCollection services, string consumerName)
         {
             services.Scan(scan => scan
                 .FromApplicationDependencies()
                 .AddClasses(classes => classes.AssignableTo<IConsume>())
-                .AsImplementedInterfaces().WithSingletonLifetime());
+                .As<IConsume>().WithSingletonLifetime());
 
+            //services.Scan(scan => scan
+            //    .FromApplicationDependencies()
+            //    .AddClasses(classes => classes.AssignableTo(typeof(IConsume<>)))
+            //    .As<IConsume>().WithSingletonLifetime());
+
+            services.AddSingleton(new ConsumerProperties(consumerName));
             services.AddHostedService<ConsumersService>();
 
             return services;

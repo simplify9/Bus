@@ -5,7 +5,7 @@ using System.Text;
 
 namespace SW.Bus
 {
-    public class BusConnection
+    internal class BusConnection
     {
         public BusConnection(IConnection providerConnection)
         {
