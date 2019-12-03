@@ -25,7 +25,7 @@ namespace SW.Bus.UnitTests
         [TestMethod]
         async public Task TestMethod1()
         {
-            await Task.Delay(TimeSpan.FromMinutes(5));
+            //await Task.Delay(TimeSpan.FromMinutes(5));
         }
     }
 }
