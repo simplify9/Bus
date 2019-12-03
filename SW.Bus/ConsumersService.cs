@@ -104,7 +104,7 @@ namespace SW.Bus
             var genericConsumerDefinitons = new List<GenericConsumerDefiniton>();
             using (var scope = sp.CreateScope())
             {
-                var genericConsumers = scope.ServiceProvider.GetServices<IConsumeBase>();
+                var genericConsumers = scope.ServiceProvider.GetServices<IConsumeGenericBase>();
                 foreach (var svc in genericConsumers)
 
                     foreach (var type in svc.GetType().GetTypeInfo().ImplementedInterfaces)
