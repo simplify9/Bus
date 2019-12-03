@@ -13,7 +13,7 @@ namespace SW.Bus
                 throw new ArgumentException("message", nameof(name));
             }
 
-            Name = Name;
+            Name = name;
         }
 
         public string Name { get; set; }

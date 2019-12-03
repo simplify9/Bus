@@ -1,11 +1,13 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using SW.PrimitiveTypes;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,40 +38,53 @@ namespace SW.Bus
                 { "x-dead-letter-exchange", $"{env.EnvironmentName}.deadletter".ToLower() }
             };
 
-            var consumers = sp.GetServices<IConsume>();
-
-            foreach (var c in consumers)
+            var nonGenericConsumerDefinitons = new List<NonGenericConsumerDefiniton>();
+            using (var scope = sp.CreateScope())
             {
+                var consumers = scope.ServiceProvider.GetServices<IConsume>();
+                foreach (var c in consumers)
+                    nonGenericConsumerDefinitons.Add(new NonGenericConsumerDefiniton
+                    {
+                        ServiceType = c.GetType(),
+                        MessageTypeNames = await c.GetMessageTypeNames()
+                    });
+
+            }
+
+            foreach (var ngcd in nonGenericConsumerDefinitons)
+
                 try
                 {
-                    var messageTypeNames = await c.GetMessageTypeNames();
+                    foreach (var messageTypeName in ngcd.MessageTypeNames)
 
-                    foreach (var messageType in messageTypeNames)
-                    {
                         try
                         {
                             var model = sp.GetRequiredService<BusConnection>().ProviderConnection.CreateModel();
                             openModels.Add(model);
-                            var queueName = $"{env.EnvironmentName}.{messageType}.{consumerProperties.Name}".ToLower();
+                            var queueName = $"{env.EnvironmentName}.{messageTypeName}.{consumerProperties.Name}".ToLower();
 
                             model.QueueDeclare(queueName, true, false, false, argd);
-                            model.QueueBind(queueName, $"{env.EnvironmentName}".ToLower(), messageType.ToLower(), null);
+                            model.QueueBind(queueName, $"{env.EnvironmentName}".ToLower(), messageTypeName.ToLower(), null);
 
                             var consumer = new AsyncEventingBasicConsumer(model);
                             consumer.Received += async (ch, ea) =>
                             {
                                 try
                                 {
-                                    var body = ea.Body;
+                                    using (var scope = sp.CreateScope())
+                                    {
+                                        var body = ea.Body;
+                                        var svc = (IConsume)scope.ServiceProvider.GetRequiredService(ngcd.ServiceType);
+                                        var message = Encoding.UTF8.GetString(body);
 
-                                    var message = Encoding.UTF8.GetString(body);
-
-                                    await c.Process(messageType, message);
-                                    model.BasicAck(ea.DeliveryTag, false);
+                                        await svc.Process(messageTypeName, message);
+                                        model.BasicAck(ea.DeliveryTag, false);
+                                    }
                                 }
                                 catch (Exception ex)
                                 {
-                                    logger.LogError(ex, $"Failed to process message: '{messageType}', for: '{consumerProperties.Name}'.");
+                                    logger.LogError(ex, $"Failed to process message '{messageTypeName}', for '{consumerProperties.Name}'.");
+
                                     model.BasicReject(ea.DeliveryTag, false);
                                 }
                             };
@@ -77,22 +92,72 @@ namespace SW.Bus
                         }
                         catch (Exception ex)
                         {
-                            logger.LogError(ex, $"Failed to start consumer message processing for consumer: '{consumerProperties.Name}', message: '{messageType}'.");
+                            logger.LogError(ex, $"Failed to start consumer message processing for consumer '{consumerProperties.Name}', message '{messageTypeName}'.");
                         }
-                    }
 
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, $"Failed to get messageTypeNames for consumer: '{consumerProperties.Name}'.");
+                    logger.LogError(ex, $"Failed to get messageTypeNames for consumer '{consumerProperties.Name}'.");
                 }
-            };
+
+            var genericConsumerDefinitons = new List<GenericConsumerDefiniton>();
+            using (var scope = sp.CreateScope())
+            {
+                var genericConsumers = scope.ServiceProvider.GetServices<IConsumeBase>();
+                foreach (var svc in genericConsumers)
+
+                    foreach (var type in svc.GetType().GetTypeInfo().ImplementedInterfaces)
+
+                        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IConsume<>))
+                        {
+                            genericConsumerDefinitons.Add(new GenericConsumerDefiniton
+                            {
+                                ServiceType = type,
+                                MessageType = type.GetGenericArguments()[0],
+                                Method = type.GetMethod("Process")
+                            });
+                        }
+            }
+
+            foreach (var gcd in genericConsumerDefinitons)
+            {
+                var model = sp.GetRequiredService<BusConnection>().ProviderConnection.CreateModel();
+                openModels.Add(model);
+                var queueName = $"{env.EnvironmentName}.{gcd.MessageType.Name}.{consumerProperties.Name}".ToLower();
+
+                model.QueueDeclare(queueName, true, false, false, argd);
+                model.QueueBind(queueName, $"{env.EnvironmentName}".ToLower(), gcd.MessageType.Name.ToLower(), null);
+
+                var consumer = new AsyncEventingBasicConsumer(model);
+                consumer.Received += async (ch, ea) =>
+                {
+                    try
+                    {
+                        using (var scope = sp.CreateScope())
+                        {
+                            var body = ea.Body;
+                            var messageObject = JsonConvert.DeserializeObject(Encoding.UTF8.GetString(body), gcd.MessageType);
+                            var svc = scope.ServiceProvider.GetRequiredService(gcd.ServiceType);   
+                            await (dynamic)gcd.Method.Invoke(svc, new object[] { messageObject });
+                            model.BasicAck(ea.DeliveryTag, false);
+                        };
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, $"Failed to process message '{gcd.MessageType.Name}', for '{consumerProperties.Name}'.");
+                        model.BasicReject(ea.DeliveryTag, false);
+                    }
+                };
+                string consumerTag = model.BasicConsume(queueName, false, consumer);
+            }
         }
+
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
             foreach (var model in openModels)
-            {
+
                 try
                 {
                     model.Close();
@@ -103,11 +168,21 @@ namespace SW.Bus
                     logger.LogWarning(ex, $"Failed to stop model.");
                 }
 
-            }
-
-
             return Task.CompletedTask;
 
+        }
+
+        private class NonGenericConsumerDefiniton
+        {
+            public Type ServiceType { get; set; }
+            public IEnumerable<string> MessageTypeNames { get; set; }
+        }
+
+        private class GenericConsumerDefiniton
+        {
+            public Type ServiceType { get; set; }
+            public Type MessageType { get; set; }
+            public MethodInfo Method { get; set; }
         }
     }
 }

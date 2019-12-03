@@ -98,12 +98,12 @@ namespace SW.Bus
             services.Scan(scan => scan
                 .FromApplicationDependencies()
                 .AddClasses(classes => classes.AssignableTo<IConsume>())
-                .As<IConsume>().WithSingletonLifetime());
+                .As<IConsume>().AsSelf().WithScopedLifetime());
 
-            //services.Scan(scan => scan
-            //    .FromApplicationDependencies()
-            //    .AddClasses(classes => classes.AssignableTo(typeof(IConsume<>)))
-            //    .As<IConsume>().WithSingletonLifetime());
+            services.Scan(scan => scan
+                .FromApplicationDependencies()
+                .AddClasses(classes => classes.AssignableTo(typeof(IConsume<>)))
+                .AsImplementedInterfaces().WithScopedLifetime());
 
             services.AddSingleton(new ConsumerProperties(consumerName));
             services.AddHostedService<ConsumersService>();
