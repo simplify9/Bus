@@ -67,9 +67,10 @@ namespace SW.Bus
             {
                 props = model.CreateBasicProperties();
 
-                props.Headers.Add(BusOptions.UserHeaderName, ((ClaimsIdentity)requestContext.User.Identity).GenerateJwt(busOptions.TokenKey, busOptions.TokenIssuer, busOptions.TokenAudience));
-                props.Headers.Add(BusOptions.ValuesHeaderName, "");
-                props.Headers.Add(BusOptions.CorrelationIdHeaderName, "");
+                var jwt = ((ClaimsIdentity)requestContext.User.Identity).GenerateJwt(busOptions.TokenKey, busOptions.TokenIssuer, busOptions.TokenAudience);
+                if (jwt != null) props.Headers.Add(BusOptions.UserHeaderName, jwt);
+                //props.Headers.Add(BusOptions.ValuesHeaderName, "");
+                //props.Headers.Add(BusOptions.CorrelationIdHeaderName, "");
             }
 
             model.BasicPublish($"{env}".ToLower(), messageTypeName.ToLower(), props, message);
