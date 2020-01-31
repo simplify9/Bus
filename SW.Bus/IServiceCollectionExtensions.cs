@@ -15,10 +15,15 @@ namespace SW.Bus
 
     public static class IServiceCollectionExtensions
     {
-
-        public static IServiceCollection AddBus(this IServiceCollection services)
+        public static IServiceCollection AddBus(this IServiceCollection services, Action<BusOptions> configure = null)
         {
-            //services.Configure<RabbitMQConfig>(configuration.GetSection(nameof(RabbitMQConfig)));
+            var busOptions = new BusOptions();
+
+            if (configure != null) configure.Invoke(busOptions);
+
+            services.AddSingleton(busOptions);
+            services.AddScoped<RequestContextManager>();
+
 
             services.AddSingleton(sp =>
             {
@@ -29,16 +34,11 @@ namespace SW.Bus
                 {
                     status = "reading configuration";
                     rabbitUrl = sp.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
-                    //if (string.IsNullOrEmpty(rabbitUrl))
-                    //{
-                    //    var config = sp.GetRequiredService<IOptions<RabbitMQConfig>>().Value;
-                    //    rabbitUrl = config.ConnectionUrl;
-                    //}
+
                     if (string.IsNullOrEmpty(rabbitUrl))
                     {
                         throw new BusException("Connection string named 'RabbitMQ' is required.");
                     }
-
 
                     status = "creating connection";
                     ConnectionFactory factory = new ConnectionFactory
@@ -47,8 +47,6 @@ namespace SW.Bus
                         Uri = new Uri(rabbitUrl),
                         DispatchConsumersAsync = true
                     };
-
-
 
                     status = "declaring exchanges";
                     var envName = sp.GetRequiredService<IHostingEnvironment>().EnvironmentName;
@@ -93,7 +91,7 @@ namespace SW.Bus
             return services;
         }
 
-        public static IServiceCollection AddBusConsume(this IServiceCollection services, string consumerName)
+        public static IServiceCollection AddBusConsume(this IServiceCollection services)
         {
             services.Scan(scan => scan
                 .FromApplicationDependencies()
@@ -105,8 +103,10 @@ namespace SW.Bus
                 .AddClasses(classes => classes.AssignableTo(typeof(IConsume<>)))
                 .AsImplementedInterfaces().WithScopedLifetime());
 
-            services.AddSingleton(new ConsumerProperties(consumerName));
             services.AddHostedService<ConsumersService>();
+
+            services.AddScoped<IRequestContext, BusRequestContext>();
+            services.AddScoped<BusRequestContext>();
 
             return services;
         }

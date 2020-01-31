@@ -25,9 +25,13 @@ namespace SW.Bus.UnitTests
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddBus();
-            services.AddBusConsume("unittestconsumer");
-            services.AddHealthChecks();
+            services.AddBus(config => 
+            {
+                config.ConsumerName = "unittestconsumer";
+            });
+            services.AddBusConsume();
+            services.AddBusPublish();
+            //services.AddHealthChecks();
             services.AddScoped<ScopedService>(); 
 
         }
@@ -39,7 +43,7 @@ namespace SW.Bus.UnitTests
             app.UseEndpoints(endpoints =>
             {
                 //endpoints.MapControllers();
-                endpoints.MapHealthChecks("/health"); 
+                //endpoints.MapHealthChecks("/health"); 
             });
         }
     }

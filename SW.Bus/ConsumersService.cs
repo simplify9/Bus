@@ -1,12 +1,14 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using SW.PrimitiveTypes;
 using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -18,14 +20,16 @@ namespace SW.Bus
     {
         private readonly IServiceProvider sp;
         private readonly ILogger<ConsumersService> logger;
-        private readonly ConsumerProperties consumerProperties;
+        private readonly BusOptions busOptions;
+
+        //private readonly ConsumerProperties consumerProperties;
         private readonly ICollection<IModel> openModels;
 
-        public ConsumersService(IServiceProvider sp, ILogger<ConsumersService> logger, ConsumerProperties consumerProperties)
+        public ConsumersService(IServiceProvider sp, ILogger<ConsumersService> logger, BusOptions busOptions)
         {
             this.sp = sp;
             this.logger = logger;
-            this.consumerProperties = consumerProperties;
+            this.busOptions = busOptions;
             openModels = new List<IModel>();
         }
 
@@ -61,7 +65,7 @@ namespace SW.Bus
                         {
                             var model = sp.GetRequiredService<BusConnection>().ProviderConnection.CreateModel();
                             openModels.Add(model);
-                            var queueName = $"{env.EnvironmentName}.{messageTypeName}.{consumerProperties.Name}".ToLower();
+                            var queueName = $"{env.EnvironmentName}.{messageTypeName}.{busOptions.ConsumerName}".ToLower();
 
                             model.QueueDeclare(queueName, true, false, false, argd);
                             model.QueueBind(queueName, $"{env.EnvironmentName}".ToLower(), messageTypeName.ToLower(), null);
@@ -73,17 +77,17 @@ namespace SW.Bus
                                 {
                                     using (var scope = sp.CreateScope())
                                     {
+                                        TryBuildBusRequestContext(scope.ServiceProvider, ea.BasicProperties);
                                         var body = ea.Body;
                                         var svc = (IConsume)scope.ServiceProvider.GetRequiredService(ngcd.ServiceType);
                                         var message = Encoding.UTF8.GetString(body);
-
                                         await svc.Process(messageTypeName, message);
                                         model.BasicAck(ea.DeliveryTag, false);
                                     }
                                 }
                                 catch (Exception ex)
                                 {
-                                    logger.LogError(ex, $"Failed to process message '{messageTypeName}', for '{consumerProperties.Name}'.");
+                                    logger.LogError(ex, $"Failed to process message '{messageTypeName}', for '{busOptions.ConsumerName}'.");
 
                                     model.BasicReject(ea.DeliveryTag, false);
                                 }
@@ -92,13 +96,13 @@ namespace SW.Bus
                         }
                         catch (Exception ex)
                         {
-                            logger.LogError(ex, $"Failed to start consumer message processing for consumer '{consumerProperties.Name}', message '{messageTypeName}'.");
+                            logger.LogError(ex, $"Failed to start consumer message processing for consumer '{busOptions.ConsumerName}', message '{messageTypeName}'.");
                         }
 
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, $"Failed to get messageTypeNames for consumer '{consumerProperties.Name}'.");
+                    logger.LogError(ex, $"Failed to get messageTypeNames for consumer '{busOptions.ConsumerName}'.");
                 }
 
             var genericConsumerDefinitons = new List<GenericConsumerDefiniton>();
@@ -124,7 +128,7 @@ namespace SW.Bus
             {
                 var model = sp.GetRequiredService<BusConnection>().ProviderConnection.CreateModel();
                 openModels.Add(model);
-                var queueName = $"{env.EnvironmentName}.{gcd.MessageType.Name}.{consumerProperties.Name}".ToLower();
+                var queueName = $"{env.EnvironmentName}.{gcd.MessageType.Name}.{busOptions.ConsumerName}".ToLower();
 
                 model.QueueDeclare(queueName, true, false, false, argd);
                 model.QueueBind(queueName, $"{env.EnvironmentName}".ToLower(), gcd.MessageType.Name.ToLower(), null);
@@ -136,16 +140,17 @@ namespace SW.Bus
                     {
                         using (var scope = sp.CreateScope())
                         {
+                            TryBuildBusRequestContext(scope.ServiceProvider, ea.BasicProperties);
                             var body = ea.Body;
                             var messageObject = JsonConvert.DeserializeObject(Encoding.UTF8.GetString(body), gcd.MessageType);
-                            var svc = scope.ServiceProvider.GetRequiredService(gcd.ServiceType);   
+                            var svc = scope.ServiceProvider.GetRequiredService(gcd.ServiceType);
                             await (dynamic)gcd.Method.Invoke(svc, new object[] { messageObject });
                             model.BasicAck(ea.DeliveryTag, false);
                         };
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, $"Failed to process message '{gcd.MessageType.Name}', for '{consumerProperties.Name}'.");
+                        logger.LogError(ex, $"Failed to process message '{gcd.MessageType.Name}', for '{busOptions.ConsumerName}'.");
                         model.BasicReject(ea.DeliveryTag, false);
                     }
                 };
@@ -153,6 +158,38 @@ namespace SW.Bus
             }
         }
 
+        void TryBuildBusRequestContext(IServiceProvider serviceProvider, IBasicProperties basicProperties)
+        {
+            var busRequestContext = serviceProvider.GetService<BusRequestContext>();
+
+            if (basicProperties.Headers == null) return;
+
+            if (basicProperties.Headers.TryGetValue(BusOptions.UserHeaderName,  out var userHeaderBytes))
+            {
+                var userHeader = Encoding.UTF8.GetString((byte[])userHeaderBytes);
+                var tokenHandler = new JwtSecurityTokenHandler();
+                TokenValidationParameters validationParameters = new TokenValidationParameters
+                {
+                    ValidIssuer = busOptions.TokenIssuer,
+                    ValidAudience = busOptions.TokenAudience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(busOptions.TokenKey))
+                };
+
+                busRequestContext.User = tokenHandler.ValidateToken(userHeader.ToString(), validationParameters, out _);
+                busRequestContext.IsValid = true;
+
+            }
+
+            if (basicProperties.Headers.TryGetValue(BusOptions.ValuesHeaderName, out var valuesHeaderBytes))
+            {
+
+            }
+
+            if (basicProperties.Headers.TryGetValue(BusOptions.CorrelationIdHeaderName, out var correlationIdHeaderBytes))
+            {
+
+            }
+        }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
@@ -184,6 +221,8 @@ namespace SW.Bus
             public Type MessageType { get; set; }
             public MethodInfo Method { get; set; }
         }
+
+
     }
 }
 
