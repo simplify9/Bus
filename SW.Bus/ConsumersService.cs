@@ -22,15 +22,17 @@ namespace SW.Bus
         private readonly IServiceProvider sp;
         private readonly ILogger<ConsumersService> logger;
         private readonly BusOptions busOptions;
+        private readonly ConsumerDiscovery consumerDiscovery;
 
         //private readonly ConsumerProperties consumerProperties;
         private readonly ICollection<IModel> openModels;
 
-        public ConsumersService(IServiceProvider sp, ILogger<ConsumersService> logger, BusOptions busOptions)
+        public ConsumersService(IServiceProvider sp, ILogger<ConsumersService> logger, BusOptions busOptions, ConsumerDiscovery consumerDiscovery)
         {
             this.sp = sp;
             this.logger = logger;
             this.busOptions = busOptions;
+            this.consumerDiscovery = consumerDiscovery;
             openModels = new List<IModel>();
         }
 
@@ -44,7 +46,7 @@ namespace SW.Bus
             };
 
             //var nonGenericConsumerDefinitons = new List<NonGenericConsumerDefiniton>();
-            var consumerDefinitons = new List<ConsumerDefiniton>();
+            var consumerDefinitons = consumerDiscovery.ConsumerDefinitons;
             var queueNamePrefix = $"{env.EnvironmentName}{(string.IsNullOrWhiteSpace(busOptions.ConsumerName) ? "" : $".{busOptions.ConsumerName}")}";
 
             using (var scope = sp.CreateScope())
@@ -217,23 +219,6 @@ namespace SW.Bus
             return Task.CompletedTask;
 
         }
-
-        private class NonGenericConsumerDefiniton
-        {
-            public Type ServiceType { get; set; }
-            public IEnumerable<string> MessageTypeNames { get; set; }
-        }
-
-        private class ConsumerDefiniton
-        {
-            public Type ServiceType { get; set; }
-            public Type MessageType { get; set; }
-            public string MessageTypeName { get; set; }
-            public MethodInfo Method { get; set; }
-            public string QueueName { get; set; }
-        }
-
-
     }
 }
 

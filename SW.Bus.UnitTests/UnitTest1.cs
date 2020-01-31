@@ -31,6 +31,7 @@ namespace SW.Bus.UnitTests
             var publisher = testServer.Host.Services.GetService<IPublish>();
             await publisher.Publish(new TestDto());
             await publisher.Publish(new TestDto());
+            var cd = testServer.Host.Services.GetService<ConsumerDiscovery>();
             await Task.Delay(TimeSpan.FromSeconds(5));
         }
     }

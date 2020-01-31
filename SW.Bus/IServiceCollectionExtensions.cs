@@ -107,6 +107,7 @@ namespace SW.Bus
 
             services.AddScoped<IRequestContext, BusRequestContext>();
             services.AddScoped<BusRequestContext>();
+            services.AddSingleton<ConsumerDiscovery>();
 
             return services;
         }
