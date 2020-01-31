@@ -45,6 +45,7 @@ namespace SW.Bus
 
             //var nonGenericConsumerDefinitons = new List<NonGenericConsumerDefiniton>();
             var consumerDefinitons = new List<ConsumerDefiniton>();
+            var queueNamePrefix = $"{env.EnvironmentName}{(string.IsNullOrWhiteSpace(busOptions.ConsumerName) ? "" : $".{busOptions.ConsumerName}")}";
 
             using (var scope = sp.CreateScope())
             {
@@ -55,7 +56,8 @@ namespace SW.Bus
                         consumerDefinitons.Add(new ConsumerDefiniton
                         {
                             ServiceType = svc.GetType(),
-                            MessageTypeName = mesageTypeName
+                            MessageTypeName = mesageTypeName,
+                            QueueName = $"{queueNamePrefix}.{svc.GetType().Name}.{mesageTypeName}".ToLower()
                         });
 
                 var genericConsumers = scope.ServiceProvider.GetServices<IConsumeGenericBase>();
@@ -68,7 +70,8 @@ namespace SW.Bus
                             ServiceType = type,
                             MessageType = type.GetGenericArguments()[0],
                             MessageTypeName = type.GetGenericArguments()[0].Name,
-                            Method = type.GetMethod("Process")
+                            Method = type.GetMethod("Process"),
+                            QueueName = $"{queueNamePrefix}.{svc.GetType().Name}.{type.GetGenericArguments()[0].Name}".ToLower()
                         });
 
             }
@@ -127,10 +130,9 @@ namespace SW.Bus
             {
                 var model = sp.GetRequiredService<BusConnection>().ProviderConnection.CreateModel();
                 openModels.Add(model);
-                //var queueName = $"{env.EnvironmentName}.{gcd.MessageType.Name}.{busOptions.ConsumerName}".ToLower();
-                var queueName = $"{env.EnvironmentName}.{consumerDefiniton.MessageTypeName}{(string.IsNullOrWhiteSpace(busOptions.ConsumerName) ? "" : $".{busOptions.ConsumerName}")}.{consumerDefiniton.ServiceType.Name}".ToLower();
-                model.QueueDeclare(queueName, true, false, false, argd);
-                model.QueueBind(queueName, $"{env.EnvironmentName}".ToLower(), consumerDefiniton.MessageTypeName.ToLower(), null);
+
+                model.QueueDeclare(consumerDefiniton.QueueName, true, false, false, argd);
+                model.QueueBind(consumerDefiniton.QueueName, $"{env.EnvironmentName}".ToLower(), consumerDefiniton.MessageTypeName.ToLower(), null);
 
                 var consumer = new AsyncEventingBasicConsumer(model);
                 consumer.Received += async (ch, ea) =>
@@ -161,7 +163,7 @@ namespace SW.Bus
                         model.BasicReject(ea.DeliveryTag, false);
                     }
                 };
-                string consumerTag = model.BasicConsume(queueName, false, consumer);
+                string consumerTag = model.BasicConsume(consumerDefiniton.QueueName, false, consumer);
             }
         }
 
@@ -228,6 +230,7 @@ namespace SW.Bus
             public Type MessageType { get; set; }
             public string MessageTypeName { get; set; }
             public MethodInfo Method { get; set; }
+            public string QueueName { get; set; }
         }
 
 
