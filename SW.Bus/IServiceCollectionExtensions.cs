@@ -96,12 +96,12 @@ namespace SW.Bus
             if (assemblies.Length == 0) assemblies = new Assembly[] { Assembly.GetCallingAssembly() };
 
             services.Scan(scan => scan
-                .FromApplicationDependencies()
+                .FromAssemblies(assemblies)
                 .AddClasses(classes => classes.AssignableTo<IConsume>())
                 .As<IConsume>().AsSelf().WithScopedLifetime());
 
             services.Scan(scan => scan
-                .FromApplicationDependencies()
+                .FromAssemblies(assemblies)
                 .AddClasses(classes => classes.AssignableTo(typeof(IConsume<>)))
                 .AsImplementedInterfaces().WithScopedLifetime());
 
