@@ -171,7 +171,7 @@ namespace SW.Bus
 
         void TryBuildBusRequestContext(IServiceProvider serviceProvider, IBasicProperties basicProperties)
         {
-            var busRequestContext = serviceProvider.GetService<BusRequestContext>();
+            var busRequestContext = (BusRequestContext)serviceProvider.GetServices<IRequestContext>().Where(rc => rc.GetType() == typeof(BusRequestContext)).FirstOrDefault();
 
             if (basicProperties.Headers == null) return;
 

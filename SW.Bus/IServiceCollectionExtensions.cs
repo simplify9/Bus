@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using SW.PrimitiveTypes;
 using System;
-
+using System.Reflection;
 
 namespace SW.Bus
 {
@@ -22,8 +22,6 @@ namespace SW.Bus
             if (configure != null) configure.Invoke(busOptions);
 
             services.AddSingleton(busOptions);
-            services.AddScoped<RequestContextManager>();
-
 
             services.AddSingleton(sp =>
             {
@@ -91,8 +89,11 @@ namespace SW.Bus
             return services;
         }
 
-        public static IServiceCollection AddBusConsume(this IServiceCollection services)
+        public static IServiceCollection AddBusConsume(this IServiceCollection services, params Assembly[] assemblies)
         {
+
+            if (assemblies.Length == 0) assemblies = new Assembly[] { Assembly.GetCallingAssembly() };
+
             services.Scan(scan => scan
                 .FromApplicationDependencies()
                 .AddClasses(classes => classes.AssignableTo<IConsume>())
@@ -104,14 +105,12 @@ namespace SW.Bus
                 .AsImplementedInterfaces().WithScopedLifetime());
 
             services.AddHostedService<ConsumersService>();
+            services.AddSingleton<ConsumerDiscovery>();
 
             services.AddScoped<IRequestContext, BusRequestContext>();
-            services.AddScoped<BusRequestContext>();
-            services.AddSingleton<ConsumerDiscovery>();
+            services.AddScoped<RequestContextManager>();
 
             return services;
         }
-
-
     }
 }

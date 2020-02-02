@@ -33,14 +33,16 @@ namespace SW.Bus
 
         public void Dispose()
         {
-            try
-            {
-                model.Close();
-                model.Dispose();
-            }
-            catch (Exception)
-            {
-            }
+
+            model.Dispose(); 
+            //try
+            //{
+            //model.Close();
+            //model.Dispose();
+            //}
+            //catch (Exception)
+            //{
+            //}
 
         }
 

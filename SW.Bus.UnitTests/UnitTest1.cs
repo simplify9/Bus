@@ -28,14 +28,17 @@ namespace SW.Bus.UnitTests
         [TestMethod]
         async public Task TestMethod1()
         {
-            using var scope = testServer.Host.Services.CreateScope();
+            using (var scope = testServer.Host.Services.CreateScope())
+            {
+                var publisher = scope.ServiceProvider.GetService<IPublish>();
 
-            var publisher = scope.ServiceProvider.GetService<IPublish>();
+                await publisher.Publish(new TestDto());
+                await publisher.Publish(new TestDto());
+                var cd = testServer.Host.Services.GetService<ConsumerDiscovery>();
+                await Task.Delay(TimeSpan.FromSeconds(5));
+            };
 
-            await publisher.Publish(new TestDto());
-            await publisher.Publish(new TestDto());
-            var cd = testServer.Host.Services.GetService<ConsumerDiscovery>();
-            await Task.Delay(TimeSpan.FromSeconds(5));
+
         }
     }
 }
