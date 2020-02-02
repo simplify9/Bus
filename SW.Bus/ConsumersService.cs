@@ -186,7 +186,7 @@ namespace SW.Bus
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(busOptions.TokenKey))
                 };
 
-                busRequestContext.User = tokenHandler.ValidateToken(userHeader.ToString(), validationParameters, out _);
+                busRequestContext.User = tokenHandler.ValidateToken(userHeader, validationParameters, out _);
                 busRequestContext.IsValid = true;
 
             }
