@@ -105,7 +105,7 @@ namespace SW.Bus
             services.Scan(scan => scan
                 .FromAssemblies(assemblies)
                 .AddClasses(classes => classes.AssignableTo(typeof(IConsume<>)))
-                .AsImplementedInterfaces().WithScopedLifetime());
+                .AsImplementedInterfaces().AsSelf().WithScopedLifetime());
 
             services.AddSingleton(sp =>
             {

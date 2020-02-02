@@ -77,7 +77,7 @@ namespace SW.Bus
 
                         consumerDefinitons.Add(new ConsumerDefiniton
                         {
-                            ServiceType = type,
+                            ServiceType = svc.GetType(),
                             MessageType = type.GetGenericArguments()[0],
                             MessageTypeName = type.GetGenericArguments()[0].Name,
                             Method = type.GetMethod("Process"),
