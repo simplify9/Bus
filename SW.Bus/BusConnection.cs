@@ -12,6 +12,6 @@ namespace SW.Bus
             ProviderConnection = providerConnection;
         }
 
-        public IConnection ProviderConnection { get; set; }
+        public IConnection ProviderConnection { get; }
     }
 }

@@ -27,7 +27,8 @@ namespace SW.Bus.SampleWeb.Pages
                 Model = "bmw"
             };
 
-            publish.Publish(car);
+            for (var i = 0; i < 10; i++)
+                publish.Publish(car);
         }
     }
 }

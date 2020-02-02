@@ -49,7 +49,8 @@ namespace SW.Bus
                     status = "declaring exchanges";
                     var envName = sp.GetRequiredService<IHostingEnvironment>().EnvironmentName;
 
-                    using (var conn = factory.CreateConnection())
+                    var conn = factory.CreateConnection();
+
                     using (var model = conn.CreateModel())
                     {
                         logger.LogDebug($"Declaring exchange {$"{envName}".ToLower()}");
@@ -60,12 +61,12 @@ namespace SW.Bus
                         model.QueueDeclare(deadletter, true, false, false);
                         model.QueueBind(deadletter, deadletter, string.Empty);
 
-                        model.Close();
-                        conn.Close();
+                        //model.Close();
+                        //conn.Close();
 
                     }
 
-                    return new BusConnection(factory.CreateConnection());
+                    return new BusConnection(conn);
                 }
                 catch (Exception ex)
                 {

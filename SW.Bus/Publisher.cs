@@ -31,20 +31,7 @@ namespace SW.Bus
             this.requestContextManager = requestContextManager;
         }
 
-        public void Dispose()
-        {
-
-            model.Dispose(); 
-            //try
-            //{
-            //model.Close();
-            //model.Dispose();
-            //}
-            //catch (Exception)
-            //{
-            //}
-
-        }
+        public void Dispose() => model.Dispose(); 
 
         public Task Publish<TMessage>(TMessage message)
         {
