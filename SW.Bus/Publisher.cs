@@ -20,21 +20,28 @@ namespace SW.Bus
         readonly string env;
 
         private readonly BusOptions busOptions;
-        private readonly IServiceProvider serviceProvider;
+        private readonly RequestContextManager requestContextManager;
 
-        public Publisher(IHostingEnvironment environment, BusConnection connection, BusOptions busOptions, IServiceProvider serviceProvider)
+        public Publisher(IHostingEnvironment environment, BusConnection connection, BusOptions busOptions, RequestContextManager requestContextManager)
         {
             model = connection.ProviderConnection.CreateModel();
             env = environment.EnvironmentName;
 
             this.busOptions = busOptions;
-            this.serviceProvider = serviceProvider;
+            this.requestContextManager = requestContextManager;
         }
 
         public void Dispose()
         {
-            model.Close();
-            model.Dispose();
+            try
+            {
+                model.Close();
+                model.Dispose();
+            }
+            catch (Exception)
+            {
+            }
+
         }
 
         public Task Publish<TMessage>(TMessage message)
@@ -53,19 +60,12 @@ namespace SW.Bus
         public Task Publish(string messageTypeName, byte[] message)
         {
             IBasicProperties props = null;
-            IRequestContext requestContext = null;
-            try
-            {
-                var requestContextManager = serviceProvider.GetService<RequestContextManager>();
-                requestContext = requestContextManager.Current;
-            }
-            catch (Exception)
-            {
-            }
+            var requestContext = requestContextManager.Current;
 
             if (requestContext != null)
             {
                 props = model.CreateBasicProperties();
+                props.Headers = new Dictionary<string, object>();
 
                 var jwt = ((ClaimsIdentity)requestContext.User.Identity).GenerateJwt(busOptions.TokenKey, busOptions.TokenIssuer, busOptions.TokenAudience);
                 if (jwt != null) props.Headers.Add(BusOptions.UserHeaderName, jwt);

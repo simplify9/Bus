@@ -81,13 +81,13 @@ namespace SW.Bus
 
         public static IServiceCollection AddBusPublish(this IServiceCollection services)
         {
-            services.AddSingleton<IPublish, Publisher>();
+            services.AddScoped<IPublish, Publisher>();
             return services;
         }
 
         public static IServiceCollection AddBusPublishMock(this IServiceCollection services)
         {
-            services.AddSingleton<IPublish, MockPublisher>();
+            services.AddScoped<IPublish, MockPublisher>();
             return services;
         }
 
