@@ -23,16 +23,18 @@ namespace SW.Bus
         private readonly ILogger<ConsumersService> logger;
         private readonly BusOptions busOptions;
         private readonly ConsumerDiscovery consumerDiscovery;
+        private readonly BusConnection busConnection;
 
         //private readonly ConsumerProperties consumerProperties;
         private readonly ICollection<IModel> openModels;
 
-        public ConsumersService(IServiceProvider sp, ILogger<ConsumersService> logger, BusOptions busOptions, ConsumerDiscovery consumerDiscovery)
+        public ConsumersService(IServiceProvider sp, ILogger<ConsumersService> logger, BusOptions busOptions, ConsumerDiscovery consumerDiscovery, BusConnection busConnection)
         {
             this.sp = sp;
             this.logger = logger;
             this.busOptions = busOptions;
             this.consumerDiscovery = consumerDiscovery;
+            this.busConnection = busConnection;
             openModels = new List<IModel>();
         }
 
@@ -78,59 +80,9 @@ namespace SW.Bus
 
             }
 
-            //foreach (var ngcd in nonGenericConsumerDefinitons)
-
-            //    try
-            //    {
-            //        foreach (var messageTypeName in ngcd.MessageTypeNames)
-
-            //            try
-            //            {
-            //                var model = sp.GetRequiredService<BusConnection>().ProviderConnection.CreateModel();
-            //                openModels.Add(model);
-            //                var queueName = $"{env.EnvironmentName}.{messageTypeName}{(string.IsNullOrWhiteSpace(busOptions.ConsumerName) ? "" : $".{busOptions.ConsumerName}")}.{ngcd.ServiceType.Name}".ToLower();
-
-            //                model.QueueDeclare(queueName, true, false, false, argd);
-            //                model.QueueBind(queueName, $"{env.EnvironmentName}".ToLower(), messageTypeName.ToLower(), null);
-
-            //                var consumer = new AsyncEventingBasicConsumer(model);
-            //                consumer.Received += async (ch, ea) =>
-            //                {
-            //                    try
-            //                    {
-            //                        using (var scope = sp.CreateScope())
-            //                        {
-            //                            TryBuildBusRequestContext(scope.ServiceProvider, ea.BasicProperties);
-            //                            var body = ea.Body;
-            //                            var svc = (IConsume)scope.ServiceProvider.GetRequiredService(ngcd.ServiceType);
-            //                            var message = Encoding.UTF8.GetString(body);
-            //                            await svc.Process(messageTypeName, message);
-            //                            model.BasicAck(ea.DeliveryTag, false);
-            //                        }
-            //                    }
-            //                    catch (Exception ex)
-            //                    {
-            //                        logger.LogError(ex, $"Failed to process message '{messageTypeName}', for '{busOptions.ConsumerName}'.");
-            //                        model.BasicReject(ea.DeliveryTag, false);
-            //                    }
-            //                };
-            //                string consumerTag = model.BasicConsume(queueName, false, consumer);
-            //            }
-            //            catch (Exception ex)
-            //            {
-            //                logger.LogError(ex, $"Failed to start consumer message processing for consumer '{busOptions.ConsumerName}', message '{messageTypeName}'.");
-            //            }
-
-            //    }
-            //    catch (Exception ex)
-            //    {
-            //        logger.LogError(ex, $"Failed to get messageTypeNames for consumer '{busOptions.ConsumerName}'.");
-            //    }
-
-
             foreach (var consumerDefiniton in consumerDefinitons)
             {
-                var model = sp.GetRequiredService<BusConnection>().ProviderConnection.CreateModel();
+                var model = busConnection.ProviderConnection.CreateModel();
                 openModels.Add(model);
 
                 model.QueueDeclare(consumerDefiniton.QueueName, true, false, false, argd);
@@ -208,7 +160,7 @@ namespace SW.Bus
 
                 try
                 {
-                    model.Close();
+                    //model.Close();
                     model.Dispose();
                 }
                 catch (Exception ex)
