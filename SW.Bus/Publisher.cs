@@ -22,7 +22,7 @@ namespace SW.Bus
         private readonly BusOptions busOptions;
         private readonly RequestContextManager requestContextManager;
 
-        public Publisher(IHostingEnvironment environment, BusConnection connection, BusOptions busOptions, RequestContextManager requestContextManager)
+        public Publisher(IHostingEnvironment environment, PublishConnection connection, BusOptions busOptions, RequestContextManager requestContextManager)
         {
             model = connection.ProviderConnection.CreateModel();
             env = environment.EnvironmentName;

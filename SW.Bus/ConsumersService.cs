@@ -31,32 +31,32 @@ namespace SW.Bus
         //private readonly ConsumerProperties consumerProperties;
         private readonly ICollection<IModel> openModels;
 
+        private readonly string env;
+
         IConnection conn = null;
 
-        public ConsumersService(IServiceProvider sp, ILogger<ConsumersService> logger, BusOptions busOptions, ConsumerDiscovery consumerDiscovery, ConnectionFactory connectionFactory)
+        public ConsumersService(IServiceProvider sp, ILogger<ConsumersService> logger, BusOptions busOptions, ConsumerDiscovery consumerDiscovery, ConnectionFactory connectionFactory, IHostingEnvironment hostingEnvironment)
         {
             this.sp = sp;
             this.logger = logger;
             this.busOptions = busOptions;
             this.consumerDiscovery = consumerDiscovery;
             this.connectionFactory = connectionFactory;
-            //this.configuration = configuration;
-            //this.busConnection = busConnection;
+
             openModels = new List<IModel>();
+            env = hostingEnvironment.EnvironmentName;
         }
 
         async public Task StartAsync(CancellationToken cancellationToken)
         {
 
-            var env = sp.GetRequiredService<IHostingEnvironment>();
             var argd = new Dictionary<string, object>
             {
-                { "x-dead-letter-exchange", $"{env.EnvironmentName}.deadletter".ToLower() }
+                { "x-dead-letter-exchange", $"{env}.deadletter".ToLower() }
             };
 
-            //var nonGenericConsumerDefinitons = new List<NonGenericConsumerDefiniton>();
             var consumerDefinitons = consumerDiscovery.ConsumerDefinitons;
-            var queueNamePrefix = $"{env.EnvironmentName}{(string.IsNullOrWhiteSpace(busOptions.ConsumerName) ? "" : $".{busOptions.ConsumerName}")}";
+            var queueNamePrefix = $"{env}{(string.IsNullOrWhiteSpace(busOptions.ConsumerName) ? "" : $".{busOptions.ConsumerName}")}";
 
             using (var scope = sp.CreateScope())
             {
@@ -74,7 +74,6 @@ namespace SW.Bus
                 var genericConsumers = scope.ServiceProvider.GetServices<IConsumeGenericBase>();
                 foreach (var svc in genericConsumers)
                     foreach (var type in svc.GetType().GetTypeInfo().ImplementedInterfaces.Where(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IConsume<>)))
-                        //if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IConsume<>))
 
                         consumerDefinitons.Add(new ConsumerDefiniton
                         {
@@ -88,25 +87,20 @@ namespace SW.Bus
             }
 
             conn = connectionFactory.CreateConnection();
-            var envName = sp.GetRequiredService<IHostingEnvironment>().EnvironmentName;
 
             using (var model = conn.CreateModel())
             {
                 foreach (var consumerDefiniton in consumerDefinitons)
                 {
                     model.QueueDeclare(consumerDefiniton.QueueName, true, false, false, argd);
-                    model.QueueBind(consumerDefiniton.QueueName, $"{env.EnvironmentName}".ToLower(), consumerDefiniton.MessageTypeName.ToLower(), null);
+                    model.QueueBind(consumerDefiniton.QueueName, $"{env}".ToLower(), consumerDefiniton.MessageTypeName.ToLower(), null);
                 }
             }
-
 
             foreach (var consumerDefiniton in consumerDefinitons)
             {
                 var model = conn.CreateModel();
                 openModels.Add(model);
-
-                //model.QueueDeclare(consumerDefiniton.QueueName, true, false, false, argd);
-                //model.QueueBind(consumerDefiniton.QueueName, $"{env.EnvironmentName}".ToLower(), consumerDefiniton.MessageTypeName.ToLower(), null);
 
                 var consumer = new AsyncEventingBasicConsumer(model);
                 consumer.Received += async (ch, ea) =>

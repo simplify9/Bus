@@ -23,24 +23,6 @@ namespace SW.Bus
 
             services.AddSingleton(busOptions);
 
-
-            services.AddSingleton(sp => 
-            {
-                var rabbitUrl = sp.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
-                if (string.IsNullOrEmpty(rabbitUrl))
-                {
-                    throw new BusException("Connection string named 'RabbitMQ' is required.");
-                }
-                ConnectionFactory factory = new ConnectionFactory
-                {
-                    AutomaticRecoveryEnabled = true,
-                    Uri = new Uri(rabbitUrl),
-                    DispatchConsumersAsync = true
-                };
-
-                return factory;
-            });
-
             services.AddSingleton(sp =>
             {
                 var logger = sp.GetRequiredService<ILogger<AddBus>>();
@@ -59,7 +41,7 @@ namespace SW.Bus
                     status = "creating connection";
                     ConnectionFactory factory = new ConnectionFactory
                     {
-                        AutomaticRecoveryEnabled = true,
+                        //AutomaticRecoveryEnabled = true,
                         Uri = new Uri(rabbitUrl),
                         //DispatchConsumersAsync = true
                     };
@@ -84,7 +66,7 @@ namespace SW.Bus
 
                     }
 
-                    return new BusConnection(conn);
+                    return new PublishConnection(conn);
                 }
                 catch (Exception ex)
                 {
@@ -122,6 +104,23 @@ namespace SW.Bus
                 .FromAssemblies(assemblies)
                 .AddClasses(classes => classes.AssignableTo(typeof(IConsume<>)))
                 .AsImplementedInterfaces().WithScopedLifetime());
+
+            services.AddSingleton(sp =>
+            {
+                var rabbitUrl = sp.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
+                if (string.IsNullOrEmpty(rabbitUrl))
+                {
+                    throw new BusException("Connection string named 'RabbitMQ' is required.");
+                }
+                ConnectionFactory factory = new ConnectionFactory
+                {
+                    //AutomaticRecoveryEnabled = true,
+                    Uri = new Uri(rabbitUrl),
+                    DispatchConsumersAsync = true
+                };
+
+                return factory;
+            });
 
             services.AddHostedService<ConsumersService>();
             services.AddSingleton<ConsumerDiscovery>();

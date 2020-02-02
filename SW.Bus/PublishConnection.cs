@@ -5,9 +5,9 @@ using System.Text;
 
 namespace SW.Bus
 {
-    internal class BusConnection
+    internal class PublishConnection
     {
-        public BusConnection(IConnection providerConnection)
+        public PublishConnection(IConnection providerConnection)
         {
             ProviderConnection = providerConnection;
         }
