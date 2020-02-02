@@ -80,13 +80,23 @@ namespace SW.Bus
 
             }
 
+            using (var model = busConnection.ProviderConnection.CreateModel())
+            {
+                foreach (var consumerDefiniton in consumerDefinitons)
+                {
+                    model.QueueDeclare(consumerDefiniton.QueueName, true, false, false, argd);
+                    model.QueueBind(consumerDefiniton.QueueName, $"{env.EnvironmentName}".ToLower(), consumerDefiniton.MessageTypeName.ToLower(), null);
+                }
+            }
+
+
             foreach (var consumerDefiniton in consumerDefinitons)
             {
                 var model = busConnection.ProviderConnection.CreateModel();
                 openModels.Add(model);
 
-                model.QueueDeclare(consumerDefiniton.QueueName, true, false, false, argd);
-                model.QueueBind(consumerDefiniton.QueueName, $"{env.EnvironmentName}".ToLower(), consumerDefiniton.MessageTypeName.ToLower(), null);
+                //model.QueueDeclare(consumerDefiniton.QueueName, true, false, false, argd);
+                //model.QueueBind(consumerDefiniton.QueueName, $"{env.EnvironmentName}".ToLower(), consumerDefiniton.MessageTypeName.ToLower(), null);
 
                 var consumer = new AsyncEventingBasicConsumer(model);
                 consumer.Received += async (ch, ea) =>
