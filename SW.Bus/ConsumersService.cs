@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
@@ -23,18 +24,24 @@ namespace SW.Bus
         private readonly ILogger<ConsumersService> logger;
         private readonly BusOptions busOptions;
         private readonly ConsumerDiscovery consumerDiscovery;
-        private readonly BusConnection busConnection;
+        private readonly ConnectionFactory connectionFactory;
+        //private readonly IConfiguration configuration;
+        //private readonly BusConnection busConnection;
 
         //private readonly ConsumerProperties consumerProperties;
         private readonly ICollection<IModel> openModels;
 
-        public ConsumersService(IServiceProvider sp, ILogger<ConsumersService> logger, BusOptions busOptions, ConsumerDiscovery consumerDiscovery, BusConnection busConnection)
+        IConnection conn = null;
+
+        public ConsumersService(IServiceProvider sp, ILogger<ConsumersService> logger, BusOptions busOptions, ConsumerDiscovery consumerDiscovery, ConnectionFactory connectionFactory)
         {
             this.sp = sp;
             this.logger = logger;
             this.busOptions = busOptions;
             this.consumerDiscovery = consumerDiscovery;
-            this.busConnection = busConnection;
+            this.connectionFactory = connectionFactory;
+            //this.configuration = configuration;
+            //this.busConnection = busConnection;
             openModels = new List<IModel>();
         }
 
@@ -80,7 +87,10 @@ namespace SW.Bus
 
             }
 
-            using (var model = busConnection.ProviderConnection.CreateModel())
+            conn = connectionFactory.CreateConnection();
+            var envName = sp.GetRequiredService<IHostingEnvironment>().EnvironmentName;
+
+            using (var model = conn.CreateModel())
             {
                 foreach (var consumerDefiniton in consumerDefinitons)
                 {
@@ -92,7 +102,7 @@ namespace SW.Bus
 
             foreach (var consumerDefiniton in consumerDefinitons)
             {
-                var model = busConnection.ProviderConnection.CreateModel();
+                var model = conn.CreateModel();
                 openModels.Add(model);
 
                 //model.QueueDeclare(consumerDefiniton.QueueName, true, false, false, argd);
@@ -166,6 +176,8 @@ namespace SW.Bus
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
+
+
             foreach (var model in openModels)
 
                 try
@@ -178,7 +190,10 @@ namespace SW.Bus
                     logger.LogWarning(ex, $"Failed to stop model.");
                 }
 
+            conn?.Close();  
+            
             return Task.CompletedTask;
+
 
         }
     }
