@@ -123,7 +123,7 @@ namespace SW.Bus
                                 await ((IConsume)svc).Process(consumerDefiniton.MessageTypeName, message);
                             }
                             model.BasicAck(ea.DeliveryTag, false);
-                        };
+                        }
                     }
                     catch (Exception ex)
                     {

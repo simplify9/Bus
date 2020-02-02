@@ -5,13 +5,13 @@ using System.Text;
 
 namespace SW.Bus
 {
-    internal class PublishConnection
-    {
-        public PublishConnection(IConnection providerConnection)
-        {
-            ProviderConnection = providerConnection;
-        }
+    //internal class PublishConnection
+    //{
+    //    public PublishConnection(IConnection providerConnection)
+    //    {
+    //        ProviderConnection = providerConnection;
+    //    }
 
-        public IConnection ProviderConnection { get; }
-    }
+    //    public IConnection ProviderConnection { get; }
+    //}
 }

@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Hosting;
+﻿//using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using RabbitMQ.Client;
@@ -20,67 +21,68 @@ namespace SW.Bus
             var busOptions = new BusOptions();
 
             if (configure != null) configure.Invoke(busOptions);
-
             services.AddSingleton(busOptions);
 
-            services.AddSingleton(sp =>
+            var serviceProvider = services.BuildServiceProvider();
+
+            var rabbitUrl = serviceProvider.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
+
+            if (string.IsNullOrEmpty(rabbitUrl))
             {
-                var logger = sp.GetRequiredService<ILogger<AddBus>>();
-                string rabbitUrl = string.Empty;
-                string status = string.Empty;
-                try
-                {
-                    status = "reading configuration";
-                    rabbitUrl = sp.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
+                throw new BusException("Connection string named 'RabbitMQ' is required.");
+            }
 
-                    if (string.IsNullOrEmpty(rabbitUrl))
-                    {
-                        throw new BusException("Connection string named 'RabbitMQ' is required.");
-                    }
+            ConnectionFactory factory = new ConnectionFactory
+            {
+                Uri = new Uri(rabbitUrl),
+            };
 
-                    status = "creating connection";
-                    ConnectionFactory factory = new ConnectionFactory
-                    {
-                        //AutomaticRecoveryEnabled = true,
-                        Uri = new Uri(rabbitUrl),
-                        //DispatchConsumersAsync = true
-                    };
+            var envName = serviceProvider.GetRequiredService<IHostingEnvironment>().EnvironmentName;
 
-                    status = "declaring exchanges";
-                    var envName = sp.GetRequiredService<IHostingEnvironment>().EnvironmentName;
+            using (var conn = factory.CreateConnection())
+            using (var model = conn.CreateModel())
+            {
+                model.ExchangeDeclare($"{envName}".ToLower(), ExchangeType.Direct, true);
 
-                    var conn = factory.CreateConnection();
+                var deadletter = $"{envName}.deadletter".ToLower();
+                model.ExchangeDeclare(deadletter, ExchangeType.Fanout, true);
+                model.QueueDeclare(deadletter, true, false, false);
+                model.QueueBind(deadletter, deadletter, string.Empty);
 
-                    using (var model = conn.CreateModel())
-                    {
-                        logger.LogDebug($"Declaring exchange {$"{envName}".ToLower()}");
-                        model.ExchangeDeclare($"{envName}".ToLower(), ExchangeType.Direct, true);
+                model.Close();
+                conn.Close();
 
-                        var deadletter = $"{envName}.deadletter".ToLower();
-                        model.ExchangeDeclare(deadletter, ExchangeType.Fanout, true);
-                        model.QueueDeclare(deadletter, true, false, false);
-                        model.QueueBind(deadletter, deadletter, string.Empty);
-
-                        //model.Close();
-                        //conn.Close();
-
-                    }
-
-                    return new PublishConnection(conn);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, $"While '{status}', rabbit:'{rabbitUrl}'");
-                    throw new BusException($"While '{status}', rabbit:'{rabbitUrl}'", ex);
-                }
-            });
+            }
 
             return services;
         }
 
         public static IServiceCollection AddBusPublish(this IServiceCollection services)
         {
-            services.AddScoped<IPublish, Publisher>();
+            var sp = services.BuildServiceProvider();
+
+            //services.AddSingleton(sp =>
+            //{
+            var rabbitUrl = sp.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
+
+            ConnectionFactory factory = new ConnectionFactory
+            {
+                Uri = new Uri(rabbitUrl),
+            };
+
+            var conn = factory.CreateConnection();
+            //    return new PublishConnection(conn);
+            //});
+
+            services.AddScoped<IPublish, Publisher>(serviceProvider =>
+            {
+                return new Publisher(
+                    serviceProvider.GetRequiredService<IHostingEnvironment>(), 
+                    conn, 
+                    serviceProvider.GetRequiredService<BusOptions>(), 
+                    serviceProvider.GetRequiredService<RequestContextManager>());
+            });
+
             return services;
         }
 
@@ -108,10 +110,7 @@ namespace SW.Bus
             services.AddSingleton(sp =>
             {
                 var rabbitUrl = sp.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
-                if (string.IsNullOrEmpty(rabbitUrl))
-                {
-                    throw new BusException("Connection string named 'RabbitMQ' is required.");
-                }
+
                 ConnectionFactory factory = new ConnectionFactory
                 {
                     //AutomaticRecoveryEnabled = true,

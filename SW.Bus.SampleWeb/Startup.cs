@@ -34,7 +34,7 @@ namespace SW.Bus.SampleWeb
             {
                 config.JsonSerializerOptions.PropertyNamingPolicy = null;
             });
-            //services.AddI18n();
+
             services.AddBus(config => 
             {
                 config.TokenKey = Configuration["Token:Key"];
@@ -46,7 +46,6 @@ namespace SW.Bus.SampleWeb
             services.AddBusConsume();
             services.AddCqApi();
             services.AddRazorPages();
-            ;
 
             services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).
                 AddCookie(options =>
@@ -82,8 +81,6 @@ namespace SW.Bus.SampleWeb
             app.UseRouting();
             app.UseAuthentication();
             app.UseAuthorization();
-
-
 
             app.UseEndpoints(endpoints =>
             {
