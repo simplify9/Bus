@@ -25,12 +25,7 @@ namespace SW.Bus
         private readonly BusOptions busOptions;
         private readonly ConsumerDiscovery consumerDiscovery;
         private readonly ConnectionFactory connectionFactory;
-        //private readonly IConfiguration configuration;
-        //private readonly BusConnection busConnection;
-
-        //private readonly ConsumerProperties consumerProperties;
         private readonly ICollection<IModel> openModels;
-
         private readonly string env;
 
         IConnection conn = null;
@@ -52,7 +47,8 @@ namespace SW.Bus
 
             var argd = new Dictionary<string, object>
             {
-                { "x-dead-letter-exchange", $"{env}.deadletter".ToLower() }
+                { "x-dead-letter-exchange", $"{env}.deadletter".ToLower() },
+                { "x-expires", (uint)TimeSpan.FromHours(12).TotalMilliseconds   }
             };
 
             var consumerDefinitons = consumerDiscovery.ConsumerDefinitons;
@@ -93,7 +89,7 @@ namespace SW.Bus
                 foreach (var consumerDefiniton in consumerDefinitons)
                 {
                     model.QueueDeclare(consumerDefiniton.QueueName, true, false, false, argd);
-                    model.QueueBind(consumerDefiniton.QueueName, $"{env}".ToLower(), consumerDefiniton.MessageTypeName.ToLower(), null);
+                    model.QueueBind(consumerDefiniton.QueueName, env.ToLower(), consumerDefiniton.MessageTypeName.ToLower(), null);
                 }
             }
 
@@ -131,6 +127,7 @@ namespace SW.Bus
                         model.BasicReject(ea.DeliveryTag, false);
                     }
                 };
+                model.BasicQos(0, 4, false);
                 string consumerTag = model.BasicConsume(consumerDefiniton.QueueName, false, consumer);
             }
         }
@@ -170,8 +167,6 @@ namespace SW.Bus
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-
-
             foreach (var model in openModels)
 
                 try
@@ -184,11 +179,9 @@ namespace SW.Bus
                     logger.LogWarning(ex, $"Failed to stop model.");
                 }
 
-            conn?.Close();  
-            
+            conn?.Close();
+
             return Task.CompletedTask;
-
-
         }
     }
 }
