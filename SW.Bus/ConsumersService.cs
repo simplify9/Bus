@@ -52,7 +52,7 @@ namespace SW.Bus
             };
 
             var consumerDefinitons = consumerDiscovery.ConsumerDefinitons;
-            var queueNamePrefix = $"{env}{(string.IsNullOrWhiteSpace(busOptions.ConsumerName) ? "" : $".{busOptions.ConsumerName}")}";
+            var queueNamePrefix = $"{env}{(string.IsNullOrWhiteSpace(busOptions.ApplicationName) ? "" : $".{busOptions.ApplicationName}")}";
 
             using (var scope = sp.CreateScope())
             {
@@ -123,7 +123,7 @@ namespace SW.Bus
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, $"Failed to process message '{consumerDefiniton.MessageTypeName}', for '{busOptions.ConsumerName}'.");
+                        logger.LogError(ex, $"Failed to process message '{consumerDefiniton.MessageTypeName}', for '{busOptions.ApplicationName}'.");
                         model.BasicReject(ea.DeliveryTag, false);
                     }
                 };

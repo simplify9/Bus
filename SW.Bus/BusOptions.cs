@@ -9,6 +9,6 @@
         public string TokenKey { get; set; }
         public string TokenAudience { get; set; }
         public string TokenIssuer { get; set; }
-        public string ConsumerName { get; set; }
+        public string ApplicationName { get; set; }
     }
 }

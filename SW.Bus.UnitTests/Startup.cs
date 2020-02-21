@@ -27,7 +27,7 @@ namespace SW.Bus.UnitTests
         {
             services.AddBus(config => 
             {
-                config.ConsumerName = "unittestconsumer";
+                config.ApplicationName = "unittestconsumer";
             });
             services.AddBusConsume();
             services.AddBusPublish();
