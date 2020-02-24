@@ -23,6 +23,8 @@ namespace SW.Bus
             if (configure != null) configure.Invoke(busOptions);
             services.AddSingleton(busOptions);
 
+            services.AddScoped<RequestContextManager>();
+
             var serviceProvider = services.BuildServiceProvider();
 
             var rabbitUrl = serviceProvider.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
@@ -125,7 +127,6 @@ namespace SW.Bus
             services.AddSingleton<ConsumerDiscovery>();
 
             services.AddScoped<IRequestContext, BusRequestContext>();
-            services.AddScoped<RequestContextManager>();
 
             return services;
         }
