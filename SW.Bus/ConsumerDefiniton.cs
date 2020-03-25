@@ -10,6 +10,7 @@ namespace SW.Bus
         public string MessageTypeName { get; set; }
         public MethodInfo Method { get; set; }
         public string QueueName { get; set; }
+        public string NakedQueueName { get; set; }
     }
 
 }

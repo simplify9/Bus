@@ -66,7 +66,8 @@ namespace SW.Bus
                             {
                                 ServiceType = svc.GetType(),
                                 MessageTypeName = mesageTypeName,
-                                QueueName = $"{queueNamePrefix}.{svc.GetType().Name}.{mesageTypeName}".ToLower()
+                                QueueName = $"{queueNamePrefix}.{svc.GetType().Name}.{mesageTypeName}".ToLower(),
+                                NakedQueueName = $"{svc.GetType().Name}.{mesageTypeName}".ToLower()
                             });
 
                     var genericConsumers = scope.ServiceProvider.GetServices<IConsumeGenericBase>();
@@ -79,7 +80,9 @@ namespace SW.Bus
                                 MessageType = type.GetGenericArguments()[0],
                                 MessageTypeName = type.GetGenericArguments()[0].Name,
                                 Method = type.GetMethod("Process"),
-                                QueueName = $"{queueNamePrefix}.{svc.GetType().Name}.{type.GetGenericArguments()[0].Name}".ToLower()
+                                QueueName = $"{queueNamePrefix}.{svc.GetType().Name}.{type.GetGenericArguments()[0].Name}".ToLower(),
+                                NakedQueueName = $"{svc.GetType().Name}.{type.GetGenericArguments()[0].Name}".ToLower()
+
                             });
 
                 }
@@ -93,7 +96,7 @@ namespace SW.Bus
                         logger.LogInformation($"Declaring and binding: {consumerDefiniton.QueueName}.");
                         model.QueueDeclare(consumerDefiniton.QueueName, true, false, false, argd);
                         model.QueueBind(consumerDefiniton.QueueName, env.ToLower(), consumerDefiniton.MessageTypeName.ToLower(), null);
-                        
+
                     }
                 }
 
@@ -131,7 +134,12 @@ namespace SW.Bus
                             model.BasicReject(ea.DeliveryTag, false);
                         }
                     };
-                    model.BasicQos(0, 4, false);
+
+                    if (busOptions.QueuePrefetch.TryGetValue(consumerDefiniton.NakedQueueName, out var customPrefetch))
+                        model.BasicQos(0, customPrefetch, false);
+                    else
+                        model.BasicQos(0, busOptions.DefaultQueuePrefetch, false);
+
                     string consumerTag = model.BasicConsume(consumerDefiniton.QueueName, false, consumer);
                 }
 
