@@ -45,90 +45,101 @@ namespace SW.Bus
         async public Task StartAsync(CancellationToken cancellationToken)
         {
 
-            var argd = new Dictionary<string, object>
+            try
             {
-                { "x-dead-letter-exchange", $"{env}.deadletter".ToLower() },
-                { "x-expires", (uint)TimeSpan.FromHours(12).TotalMilliseconds   }
-            };
+                var argd = new Dictionary<string, object>
+                {
+                    { "x-dead-letter-exchange", $"{env}.deadletter".ToLower() },
+                    { "x-expires", (uint)TimeSpan.FromHours(12).TotalMilliseconds   }
+                };
 
-            var consumerDefinitons = consumerDiscovery.ConsumerDefinitons;
-            var queueNamePrefix = $"{env}{(string.IsNullOrWhiteSpace(busOptions.ApplicationName) ? "" : $".{busOptions.ApplicationName}")}";
+                var consumerDefinitons = consumerDiscovery.ConsumerDefinitons;
+                var queueNamePrefix = $"{env}{(string.IsNullOrWhiteSpace(busOptions.ApplicationName) ? "" : $".{busOptions.ApplicationName}")}";
 
-            using (var scope = sp.CreateScope())
-            {
-                var consumers = scope.ServiceProvider.GetServices<IConsume>();
-                foreach (var svc in consumers)
-                    foreach (var mesageTypeName in await svc.GetMessageTypeNames())
+                using (var scope = sp.CreateScope())
+                {
+                    var consumers = scope.ServiceProvider.GetServices<IConsume>();
+                    foreach (var svc in consumers)
+                        foreach (var mesageTypeName in await svc.GetMessageTypeNames())
 
-                        consumerDefinitons.Add(new ConsumerDefiniton
-                        {
-                            ServiceType = svc.GetType(),
-                            MessageTypeName = mesageTypeName,
-                            QueueName = $"{queueNamePrefix}.{svc.GetType().Name}.{mesageTypeName}".ToLower()
-                        });
+                            consumerDefinitons.Add(new ConsumerDefiniton
+                            {
+                                ServiceType = svc.GetType(),
+                                MessageTypeName = mesageTypeName,
+                                QueueName = $"{queueNamePrefix}.{svc.GetType().Name}.{mesageTypeName}".ToLower()
+                            });
 
-                var genericConsumers = scope.ServiceProvider.GetServices<IConsumeGenericBase>();
-                foreach (var svc in genericConsumers)
-                    foreach (var type in svc.GetType().GetTypeInfo().ImplementedInterfaces.Where(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IConsume<>)))
+                    var genericConsumers = scope.ServiceProvider.GetServices<IConsumeGenericBase>();
+                    foreach (var svc in genericConsumers)
+                        foreach (var type in svc.GetType().GetTypeInfo().ImplementedInterfaces.Where(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IConsume<>)))
 
-                        consumerDefinitons.Add(new ConsumerDefiniton
-                        {
-                            ServiceType = svc.GetType(),
-                            MessageType = type.GetGenericArguments()[0],
-                            MessageTypeName = type.GetGenericArguments()[0].Name,
-                            Method = type.GetMethod("Process"),
-                            QueueName = $"{queueNamePrefix}.{svc.GetType().Name}.{type.GetGenericArguments()[0].Name}".ToLower()
-                        });
+                            consumerDefinitons.Add(new ConsumerDefiniton
+                            {
+                                ServiceType = svc.GetType(),
+                                MessageType = type.GetGenericArguments()[0],
+                                MessageTypeName = type.GetGenericArguments()[0].Name,
+                                Method = type.GetMethod("Process"),
+                                QueueName = $"{queueNamePrefix}.{svc.GetType().Name}.{type.GetGenericArguments()[0].Name}".ToLower()
+                            });
 
-            }
+                }
 
-            conn = connectionFactory.CreateConnection();
+                conn = connectionFactory.CreateConnection();
 
-            using (var model = conn.CreateModel())
-            {
+                using (var model = conn.CreateModel())
+                {
+                    foreach (var consumerDefiniton in consumerDefinitons)
+                    {
+                        logger.LogInformation($"Declaring and binding: {consumerDefiniton.QueueName}.");
+                        model.QueueDeclare(consumerDefiniton.QueueName, true, false, false, argd);
+                        model.QueueBind(consumerDefiniton.QueueName, env.ToLower(), consumerDefiniton.MessageTypeName.ToLower(), null);
+                        
+                    }
+                }
+
                 foreach (var consumerDefiniton in consumerDefinitons)
                 {
-                    model.QueueDeclare(consumerDefiniton.QueueName, true, false, false, argd);
-                    model.QueueBind(consumerDefiniton.QueueName, env.ToLower(), consumerDefiniton.MessageTypeName.ToLower(), null);
-                }
-            }
+                    var model = conn.CreateModel();
+                    openModels.Add(model);
 
-            foreach (var consumerDefiniton in consumerDefinitons)
-            {
-                var model = conn.CreateModel();
-                openModels.Add(model);
-
-                var consumer = new AsyncEventingBasicConsumer(model);
-                consumer.Received += async (ch, ea) =>
-                {
-                    try
+                    var consumer = new AsyncEventingBasicConsumer(model);
+                    consumer.Received += async (ch, ea) =>
                     {
-                        using (var scope = sp.CreateScope())
+                        try
                         {
-                            TryBuildBusRequestContext(scope.ServiceProvider, ea.BasicProperties);
-                            var body = ea.Body;
-                            var message = Encoding.UTF8.GetString(body);
-                            var svc = scope.ServiceProvider.GetRequiredService(consumerDefiniton.ServiceType);
-                            if (consumerDefiniton.MessageType != null)
+                            using (var scope = sp.CreateScope())
                             {
-                                var messageObject = JsonConvert.DeserializeObject(message, consumerDefiniton.MessageType);
-                                await (dynamic)consumerDefiniton.Method.Invoke(svc, new object[] { messageObject });
+                                TryBuildBusRequestContext(scope.ServiceProvider, ea.BasicProperties);
+                                var body = ea.Body;
+                                var message = Encoding.UTF8.GetString(body);
+                                var svc = scope.ServiceProvider.GetRequiredService(consumerDefiniton.ServiceType);
+                                if (consumerDefiniton.MessageType != null)
+                                {
+                                    var messageObject = JsonConvert.DeserializeObject(message, consumerDefiniton.MessageType);
+                                    await (dynamic)consumerDefiniton.Method.Invoke(svc, new object[] { messageObject });
+                                }
+                                else
+                                {
+                                    await ((IConsume)svc).Process(consumerDefiniton.MessageTypeName, message);
+                                }
+                                model.BasicAck(ea.DeliveryTag, false);
                             }
-                            else
-                            {
-                                await ((IConsume)svc).Process(consumerDefiniton.MessageTypeName, message);
-                            }
-                            model.BasicAck(ea.DeliveryTag, false);
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, $"Failed to process message '{consumerDefiniton.MessageTypeName}', for '{busOptions.ApplicationName}'.");
-                        model.BasicReject(ea.DeliveryTag, false);
-                    }
-                };
-                model.BasicQos(0, 4, false);
-                string consumerTag = model.BasicConsume(consumerDefiniton.QueueName, false, consumer);
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, $"Failed to process message '{consumerDefiniton.MessageTypeName}', for '{busOptions.ApplicationName}'.");
+                            model.BasicReject(ea.DeliveryTag, false);
+                        }
+                    };
+                    model.BasicQos(0, 4, false);
+                    string consumerTag = model.BasicConsume(consumerDefiniton.QueueName, false, consumer);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, $"Starting Infolink {nameof(ConsumersService)}");
+                //throw ;
             }
         }
 
