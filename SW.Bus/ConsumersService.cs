@@ -130,8 +130,8 @@ namespace SW.Bus
                         }
                         catch (Exception ex)
                         {
-                            logger.LogError(ex, $"Failed to process message '{consumerDefiniton.MessageTypeName}', for '{busOptions.ApplicationName}'.");
                             model.BasicReject(ea.DeliveryTag, false);
+                            logger.LogError(ex, $"Failed to process message '{consumerDefiniton.MessageTypeName}', for '{busOptions.ApplicationName}'.");
                         }
                     };
 
