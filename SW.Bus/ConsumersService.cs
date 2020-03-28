@@ -116,14 +116,14 @@ namespace SW.Bus
                                 var body = ea.Body;
                                 var message = Encoding.UTF8.GetString(body);
                                 var svc = scope.ServiceProvider.GetRequiredService(consumerDefiniton.ServiceType);
-                                if (consumerDefiniton.MessageType != null)
-                                {
-                                    var messageObject = JsonConvert.DeserializeObject(message, consumerDefiniton.MessageType);
-                                    await (dynamic)consumerDefiniton.Method.Invoke(svc, new object[] { messageObject });
-                                }
+                                if (consumerDefiniton.MessageType == null)
+                                    await ((IConsume)svc).Process(consumerDefiniton.MessageTypeName, message);
+
                                 else
                                 {
-                                    await ((IConsume)svc).Process(consumerDefiniton.MessageTypeName, message);
+                                    var messageObject = JsonConvert.DeserializeObject(message, consumerDefiniton.MessageType);
+                                    await (Task)consumerDefiniton.Method.Invoke(svc, new object[] { messageObject });
+
                                 }
                                 model.BasicAck(ea.DeliveryTag, false);
                             }
@@ -159,6 +159,13 @@ namespace SW.Bus
 
             if (basicProperties.Headers.TryGetValue(BusOptions.UserHeaderName, out var userHeaderBytes))
             {
+
+                if (busOptions.TokenKey == null || busOptions.TokenIssuer == null || busOptions.TokenAudience == null)
+                {
+                    logger.LogWarning("Failed to build request context, missing token parameters.");
+                    return;
+                }
+
                 var userHeader = Encoding.UTF8.GetString((byte[])userHeaderBytes);
                 var tokenHandler = new JwtSecurityTokenHandler();
                 TokenValidationParameters validationParameters = new TokenValidationParameters
