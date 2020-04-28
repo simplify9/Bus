@@ -106,15 +106,18 @@ namespace SW.Bus
                     openModels.Add(model);
 
                     var consumer = new AsyncEventingBasicConsumer(model);
+
                     consumer.Received += async (ch, ea) =>
                     {
+                        string message = null;
                         try
                         {
                             using (var scope = sp.CreateScope())
                             {
+
                                 TryBuildBusRequestContext(scope.ServiceProvider, ea.BasicProperties);
                                 var body = ea.Body;
-                                var message = Encoding.UTF8.GetString(body);
+                                message = Encoding.UTF8.GetString(body);
                                 var svc = scope.ServiceProvider.GetRequiredService(consumerDefiniton.ServiceType);
                                 if (consumerDefiniton.MessageType == null)
                                     await ((IConsume)svc).Process(consumerDefiniton.MessageTypeName, message);
@@ -131,7 +134,7 @@ namespace SW.Bus
                         catch (Exception ex)
                         {
                             model.BasicReject(ea.DeliveryTag, false);
-                            logger.LogError(ex, $"Failed to process message '{consumerDefiniton.MessageTypeName}', for '{busOptions.ApplicationName}'.");
+                            logger.LogError(ex, $"Failed to process message '{consumerDefiniton.MessageTypeName}', for '{busOptions.ApplicationName}'. Message '{message}' ");
                         }
                     };
 
