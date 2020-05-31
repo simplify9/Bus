@@ -114,7 +114,7 @@ namespace SW.Bus
                             {
                                 TryBuildBusRequestContext(scope.ServiceProvider, ea.BasicProperties);
                                 var body = ea.Body;
-                                var message = Encoding.UTF8.GetString(body);
+                                var message = Encoding.UTF8.GetString( body.ToArray());
                                 var svc = scope.ServiceProvider.GetRequiredService(consumerDefiniton.ServiceType);
                                 if (consumerDefiniton.MessageType == null)
                                     await ((IConsume)svc).Process(consumerDefiniton.MessageTypeName, message);
