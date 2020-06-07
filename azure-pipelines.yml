@@ -45,6 +45,7 @@ steps:
 
 - task: DotNetCoreCLI@2
   displayName: 'dotnet pack'
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
   inputs:
     command: pack
     packagesToPack: 'SW.Bus/SW.Bus.csproj;'
