@@ -6,7 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="3.1.4" />
-    <PackageReference Include="SimplyWorks.CqApi" Version="2020.2.24.2" />
+    <PackageReference Include="SimplyWorks.CqApi" Version="2020.6.7.3" />
   </ItemGroup>
 
   <ItemGroup>

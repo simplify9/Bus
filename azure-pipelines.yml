@@ -7,7 +7,9 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  buildConfiguration: 'Release'
+- group: RabbitMQ
+- name: buildConfiguration
+  value: 'Release'
 
 steps:
 - task: UseDotNet@2
@@ -22,9 +24,6 @@ steps:
   inputs:
     command: 'restore'
     projects: '**/*.csproj'
-    feedsToUse: 'select'
-    vstsFeed: 'e5fb2e9c-1207-48a4-8f7b-2e6b32308210'
-
 
 - task: DotNetCoreCLI@2
   displayName: Build
@@ -32,6 +31,11 @@ steps:
     projects: '**/*.csproj'
     arguments: '--configuration $(BuildConfiguration)'
 
+- task: qetza.replacetokens.replacetokens-task.replacetokens@3
+  displayName: 'Replace tokens'
+  inputs:
+    targetFiles: |
+      **/*.json
 
 - task: DotNetCoreCLI@2
   displayName: 'dotnet test'
@@ -47,9 +51,10 @@ steps:
     nobuild: true
     versioningScheme: byBuildNumber
 
-- task: DotNetCoreCLI@2
-  displayName: 'dotnet push'
+- task: NuGetCommand@2
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
   inputs:
-    command: push
-    publishVstsFeed: 'e5fb2e9c-1207-48a4-8f7b-2e6b32308210'
-
+    command: 'push'
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+    nuGetFeedType: 'external'
+    publishFeedCredentials: 'swnuget' 
