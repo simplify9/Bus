@@ -154,7 +154,7 @@ namespace SW.Bus
 
         void TryBuildBusRequestContext(IServiceProvider serviceProvider, IBasicProperties basicProperties)
         {
-            var busRequestContext = (BusRequestContext)serviceProvider.GetServices<IRequestContext>().Where(rc => rc.GetType() == typeof(BusRequestContext)).FirstOrDefault();
+            var busRequestContextProvider = (BusRequestContextProvider)serviceProvider.GetServices<IRequestContextProvider>().Where(rc => rc.GetType() == typeof(BusRequestContextProvider)).FirstOrDefault();
 
             if (basicProperties.Headers == null) return;
 
@@ -176,20 +176,30 @@ namespace SW.Bus
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(busOptions.TokenKey))
                 };
 
-                busRequestContext.User = tokenHandler.ValidateToken(userHeader, validationParameters, out _);
-                busRequestContext.IsValid = true;
+                var user = tokenHandler.ValidateToken(userHeader, validationParameters, out _);
+
+
+                if (basicProperties.Headers.TryGetValue(BusOptions.ValuesHeaderName, out var valuesHeaderBytes))
+                {
+
+                }
+
+                if (basicProperties.Headers.TryGetValue(BusOptions.CorrelationIdHeaderName, out var correlationIdHeaderBytes))
+                {
+
+                }
+
+
+                var requestContext = new RequestContext(user, null, null);
+
+
+
+
+                busRequestContextProvider.SetContext(requestContext);
 
             }
 
-            if (basicProperties.Headers.TryGetValue(BusOptions.ValuesHeaderName, out var valuesHeaderBytes))
-            {
 
-            }
-
-            if (basicProperties.Headers.TryGetValue(BusOptions.CorrelationIdHeaderName, out var correlationIdHeaderBytes))
-            {
-
-            }
         }
 
         public Task StopAsync(CancellationToken cancellationToken)

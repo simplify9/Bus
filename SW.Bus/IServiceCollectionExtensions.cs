@@ -126,7 +126,7 @@ namespace SW.Bus
             services.AddHostedService<ConsumersService>();
             services.AddSingleton<ConsumerDiscovery>();
 
-            services.AddScoped<IRequestContext, BusRequestContext>();
+            services.AddScoped<IRequestContextProvider, BusRequestContextProvider>();
 
             return services;
         }
