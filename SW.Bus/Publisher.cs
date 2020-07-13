@@ -46,10 +46,10 @@ namespace SW.Bus
             return Task.CompletedTask;
         }
 
-        public Task Publish(string messageTypeName, byte[] message)
+        async public Task Publish(string messageTypeName, byte[] message)
         {
             IBasicProperties props = null;
-            var requestContext = requestContextManager.Current;
+            var requestContext = await requestContextManager.GetCurrentContext();
 
             if (requestContext != null)
             {
@@ -64,7 +64,7 @@ namespace SW.Bus
 
             model.BasicPublish($"{env}".ToLower(), messageTypeName.ToLower(), props, message);
 
-            return Task.CompletedTask;
+            return ;
 
         }
     }

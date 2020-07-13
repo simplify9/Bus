@@ -16,11 +16,11 @@ namespace SW.Bus.SampleWeb.Consumers
             this.requestContextManager = requestContextManager;
         }
 
-        public Task Process(CarDto message)
+        async public Task Process(CarDto message)
         {
             //throw new NotImplementedException();
-            var user = requestContextManager.Current.User;
-            return Task.CompletedTask;
+            var user = (await requestContextManager.GetCurrentContext()).User;
+            //return Task.CompletedTask;
         }
     }
 }
