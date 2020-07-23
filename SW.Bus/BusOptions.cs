@@ -19,8 +19,6 @@ namespace SW.Bus
 
         public JwtTokenParameters Token { get; set; }
         public string ApplicationName { get; set; }
-
-
         public ushort DefaultQueuePrefetch { get; set; }
         public IDictionary<string, ushort> QueuePrefetch { get; private set; }
 

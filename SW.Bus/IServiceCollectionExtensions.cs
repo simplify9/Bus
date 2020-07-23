@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
+using SW.HttpExtensions;
 using SW.PrimitiveTypes;
 using System;
 using System.Reflection;
@@ -21,8 +22,13 @@ namespace SW.Bus
             services.AddSingleton(busOptions);
 
             var serviceProvider = services.BuildServiceProvider();
+            var configuration = serviceProvider.GetRequiredService<IConfiguration>();
 
             var rabbitUrl = serviceProvider.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
+
+            if (!busOptions.Token.IsValid)
+                configuration.GetSection(JwtTokenParameters.ConfigurationSection).Bind(busOptions.Token);
+
 
             if (string.IsNullOrEmpty(rabbitUrl))
             {

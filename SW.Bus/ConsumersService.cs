@@ -115,7 +115,7 @@ namespace SW.Bus
                             {
                                 TryBuildBusRequestContext(scope.ServiceProvider, ea.BasicProperties);
                                 var body = ea.Body;
-                                var message = Encoding.UTF8.GetString( body.ToArray());
+                                var message = Encoding.UTF8.GetString(body.ToArray());
                                 var svc = scope.ServiceProvider.GetRequiredService(consumerDefiniton.ServiceType);
                                 if (consumerDefiniton.MessageType == null)
                                     await ((IConsume)svc).Process(consumerDefiniton.MessageTypeName, message);
@@ -154,20 +154,10 @@ namespace SW.Bus
 
         void TryBuildBusRequestContext(IServiceProvider serviceProvider, IBasicProperties basicProperties)
         {
-            if (basicProperties.Headers == null) return;
-
             var requestContext = serviceProvider.GetService<RequestContext>();
-            if (requestContext == null) return;
 
-            if (basicProperties.Headers.TryGetValue(BusOptions.UserHeaderName, out var userHeaderBytes))
+            if (requestContext != null && busOptions.Token.IsValid && basicProperties.Headers != null && basicProperties.Headers.TryGetValue(BusOptions.UserHeaderName, out var userHeaderBytes))
             {
-
-                if (!busOptions.Token.IsValid())
-                {
-                    logger.LogWarning("Failed to build request context, missing token parameters.");
-                    return;
-                }
-
                 var userHeader = Encoding.UTF8.GetString((byte[])userHeaderBytes);
                 var user = busOptions.Token.ReadJwt(userHeader);
 
@@ -184,8 +174,6 @@ namespace SW.Bus
                 requestContext.Set(user, null, null);
 
             }
-
-
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
