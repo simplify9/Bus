@@ -20,15 +20,15 @@ namespace SW.Bus
         readonly string env;
 
         private readonly BusOptions busOptions;
-        private readonly RequestContextManager requestContextManager;
+        private readonly RequestContext requestContext;
 
-        public Publisher(IHostingEnvironment environment, IConnection connection, BusOptions busOptions, RequestContextManager requestContextManager)
+        public Publisher(IHostEnvironment environment, IConnection connection, BusOptions busOptions, RequestContext requestContext)
         {
             model = connection.CreateModel();
             env = environment.EnvironmentName;
 
             this.busOptions = busOptions;
-            this.requestContextManager = requestContextManager;
+            this.requestContext = requestContext;
         }
 
         public void Dispose() => model.Dispose(); 
@@ -49,14 +49,16 @@ namespace SW.Bus
         async public Task Publish(string messageTypeName, byte[] message)
         {
             IBasicProperties props = null;
-            var requestContext = await requestContextManager.GetCurrentContext();
 
-            if (requestContext != null)
+
+            if (requestContext.IsValid)
             {
                 props = model.CreateBasicProperties();
                 props.Headers = new Dictionary<string, object>();
 
-                var jwt = ((ClaimsIdentity)requestContext.User.Identity).GenerateJwt(busOptions.TokenKey, busOptions.TokenIssuer, busOptions.TokenAudience);
+                var jwt = busOptions.Token.WriteJwt((ClaimsIdentity)requestContext.User.Identity);
+
+                //var jwt = ((ClaimsIdentity)requestContext.User.Identity).GenerateJwt(busOptions.TokenKey, busOptions.TokenIssuer, busOptions.TokenAudience);
                 if (jwt != null) props.Headers.Add(BusOptions.UserHeaderName, jwt);
                 //props.Headers.Add(BusOptions.ValuesHeaderName, "");
                 //props.Headers.Add(BusOptions.CorrelationIdHeaderName, "");

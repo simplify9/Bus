@@ -23,8 +23,6 @@ namespace SW.Bus
             if (configure != null) configure.Invoke(busOptions);
             services.AddSingleton(busOptions);
 
-            services.AddScoped<RequestContextManager>();
-
             var serviceProvider = services.BuildServiceProvider();
 
             var rabbitUrl = serviceProvider.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
@@ -39,7 +37,7 @@ namespace SW.Bus
                 Uri = new Uri(rabbitUrl),
             };
 
-            var envName = serviceProvider.GetRequiredService<IHostingEnvironment>().EnvironmentName;
+            var envName = serviceProvider.GetRequiredService<IHostEnvironment>().EnvironmentName;
 
             using (var conn = factory.CreateConnection())
             using (var model = conn.CreateModel())
@@ -62,9 +60,6 @@ namespace SW.Bus
         public static IServiceCollection AddBusPublish(this IServiceCollection services)
         {
             var sp = services.BuildServiceProvider();
-
-            //services.AddSingleton(sp =>
-            //{
             var rabbitUrl = sp.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
 
             ConnectionFactory factory = new ConnectionFactory
@@ -73,16 +68,14 @@ namespace SW.Bus
             };
 
             var conn = factory.CreateConnection();
-            //    return new PublishConnection(conn);
-            //});
 
             services.AddScoped<IPublish, Publisher>(serviceProvider =>
             {
                 return new Publisher(
-                    serviceProvider.GetRequiredService<IHostingEnvironment>(), 
+                    serviceProvider.GetRequiredService<IHostEnvironment>(), 
                     conn, 
                     serviceProvider.GetRequiredService<BusOptions>(), 
-                    serviceProvider.GetRequiredService<RequestContextManager>());
+                    serviceProvider.GetRequiredService<RequestContext>());
             });
 
             return services;
@@ -126,7 +119,7 @@ namespace SW.Bus
             services.AddHostedService<ConsumersService>();
             services.AddSingleton<ConsumerDiscovery>();
 
-            services.AddScoped<IRequestContextProvider, BusRequestContextProvider>();
+            //services.AddScoped<IRequestContextProvider, BusRequestContextProvider>();
 
             return services;
         }

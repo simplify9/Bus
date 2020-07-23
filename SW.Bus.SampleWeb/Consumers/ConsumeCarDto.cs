@@ -9,17 +9,17 @@ namespace SW.Bus.SampleWeb.Consumers
 {
     public class ConsumeCarDto : IConsume<CarDto>
     {
-        private readonly RequestContextManager requestContextManager;
+        private readonly RequestContext requestContext;
 
-        public ConsumeCarDto(RequestContextManager requestContextManager)
+        public ConsumeCarDto(RequestContext requestContext)
         {
-            this.requestContextManager = requestContextManager;
+            this.requestContext = requestContext;
         }
 
         async public Task Process(CarDto message)
         {
             //throw new NotImplementedException();
-            var user = (await requestContextManager.GetCurrentContext()).User;
+            var user = requestContext.User;
             //return Task.CompletedTask;
         }
     }

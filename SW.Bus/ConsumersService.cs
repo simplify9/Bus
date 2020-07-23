@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using SW.HttpExtensions;
 using SW.PrimitiveTypes;
 using System;
 using System.Collections.Generic;
@@ -154,29 +155,31 @@ namespace SW.Bus
 
         void TryBuildBusRequestContext(IServiceProvider serviceProvider, IBasicProperties basicProperties)
         {
-            var busRequestContextProvider = (BusRequestContextProvider)serviceProvider.GetServices<IRequestContextProvider>().Where(rc => rc.GetType() == typeof(BusRequestContextProvider)).FirstOrDefault();
+            //var busRequestContextProvider = (BusRequestContextProvider)serviceProvider.GetServices<RequestContext>().Where(rc => rc.GetType() == typeof(BusRequestContextProvider)).FirstOrDefault();
 
             if (basicProperties.Headers == null) return;
+
+            var requestContext = serviceProvider.GetService<RequestContext>();
 
             if (basicProperties.Headers.TryGetValue(BusOptions.UserHeaderName, out var userHeaderBytes))
             {
 
-                if (busOptions.TokenKey == null || busOptions.TokenIssuer == null || busOptions.TokenAudience == null)
+                if (!busOptions.Token.IsValid())
                 {
                     logger.LogWarning("Failed to build request context, missing token parameters.");
                     return;
                 }
 
                 var userHeader = Encoding.UTF8.GetString((byte[])userHeaderBytes);
-                var tokenHandler = new JwtSecurityTokenHandler();
-                TokenValidationParameters validationParameters = new TokenValidationParameters
-                {
-                    ValidIssuer = busOptions.TokenIssuer,
-                    ValidAudience = busOptions.TokenAudience,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(busOptions.TokenKey))
-                };
+                //var tokenHandler = new JwtSecurityTokenHandler();
+                //TokenValidationParameters validationParameters = new TokenValidationParameters
+                //{
+                //    ValidIssuer = busOptions.TokenIssuer,
+                //    ValidAudience = busOptions.TokenAudience,
+                //    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(busOptions.TokenKey))
+                //};
 
-                var user = tokenHandler.ValidateToken(userHeader, validationParameters, out _);
+                var user = busOptions.Token.ReadJwt(userHeader);//tokenHandler.ValidateToken(userHeader, validationParameters, out _);
 
 
                 if (basicProperties.Headers.TryGetValue(BusOptions.ValuesHeaderName, out var valuesHeaderBytes))
@@ -190,12 +193,7 @@ namespace SW.Bus
                 }
 
 
-                var requestContext = new RequestContext(user, null, null);
-
-
-
-
-                busRequestContextProvider.SetContext(requestContext);
+                requestContext.Set(user, null, null);
 
             }
 

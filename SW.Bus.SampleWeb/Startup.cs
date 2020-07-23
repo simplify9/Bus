@@ -15,6 +15,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using SW.CqApi;
+using SW.PrimitiveTypes;
 
 namespace SW.Bus.SampleWeb 
 {
@@ -37,15 +38,16 @@ namespace SW.Bus.SampleWeb
 
             services.AddBus(config => 
             {
-                config.TokenKey = Configuration["Token:Key"];
-                config.TokenIssuer  = Configuration["Token:Issuer"];
-                config.TokenAudience = Configuration["Token:Audience"];
+                config.Token.Key = Configuration["Token:Key"];
+                config.Token.Issuer  = Configuration["Token:Issuer"];
+                config.Token.Audience = Configuration["Token:Audience"];
 
             });
             services.AddBusPublish();
             services.AddBusConsume();
             services.AddCqApi();
             services.AddRazorPages();
+            services.AddScoped<RequestContext>();
 
             services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).
                 AddCookie(options =>

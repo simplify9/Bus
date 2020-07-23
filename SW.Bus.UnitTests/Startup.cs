@@ -34,7 +34,8 @@ namespace SW.Bus.UnitTests
             services.AddBusConsume();
             services.AddBusPublish();
             //services.AddHealthChecks();
-            services.AddScoped<ScopedService>(); 
+            services.AddScoped<ScopedService>();
+            services.AddScoped<RequestContext>();
 
         }
 
