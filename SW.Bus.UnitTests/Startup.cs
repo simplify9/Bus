@@ -4,8 +4,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-
-
+using SW.PrimitiveTypes;
 
 namespace SW.Bus.UnitTests
 {
@@ -33,7 +32,7 @@ namespace SW.Bus.UnitTests
             });
             services.AddBusConsume();
             services.AddBusPublish();
-            //services.AddHealthChecks();
+
             services.AddScoped<ScopedService>();
             services.AddScoped<RequestContext>();
 

@@ -149,17 +149,15 @@ namespace SW.Bus
             catch (Exception ex)
             {
                 logger.LogError(ex, $"Starting Infolink {nameof(ConsumersService)}");
-                //throw ;
             }
         }
 
         void TryBuildBusRequestContext(IServiceProvider serviceProvider, IBasicProperties basicProperties)
         {
-            //var busRequestContextProvider = (BusRequestContextProvider)serviceProvider.GetServices<RequestContext>().Where(rc => rc.GetType() == typeof(BusRequestContextProvider)).FirstOrDefault();
-
             if (basicProperties.Headers == null) return;
 
             var requestContext = serviceProvider.GetService<RequestContext>();
+            if (requestContext == null) return;
 
             if (basicProperties.Headers.TryGetValue(BusOptions.UserHeaderName, out var userHeaderBytes))
             {
@@ -171,16 +169,7 @@ namespace SW.Bus
                 }
 
                 var userHeader = Encoding.UTF8.GetString((byte[])userHeaderBytes);
-                //var tokenHandler = new JwtSecurityTokenHandler();
-                //TokenValidationParameters validationParameters = new TokenValidationParameters
-                //{
-                //    ValidIssuer = busOptions.TokenIssuer,
-                //    ValidAudience = busOptions.TokenAudience,
-                //    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(busOptions.TokenKey))
-                //};
-
-                var user = busOptions.Token.ReadJwt(userHeader);//tokenHandler.ValidateToken(userHeader, validationParameters, out _);
-
+                var user = busOptions.Token.ReadJwt(userHeader);
 
                 if (basicProperties.Headers.TryGetValue(BusOptions.ValuesHeaderName, out var valuesHeaderBytes))
                 {
@@ -191,7 +180,6 @@ namespace SW.Bus
                 {
 
                 }
-
 
                 requestContext.Set(user, null, null);
 

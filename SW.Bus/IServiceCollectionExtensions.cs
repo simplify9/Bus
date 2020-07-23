@@ -1,9 +1,6 @@
-﻿//using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-
 using RabbitMQ.Client;
 using SW.PrimitiveTypes;
 using System;
@@ -118,8 +115,6 @@ namespace SW.Bus
 
             services.AddHostedService<ConsumersService>();
             services.AddSingleton<ConsumerDiscovery>();
-
-            //services.AddScoped<IRequestContextProvider, BusRequestContextProvider>();
 
             return services;
         }

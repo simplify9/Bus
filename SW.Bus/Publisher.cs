@@ -33,20 +33,18 @@ namespace SW.Bus
 
         public void Dispose() => model.Dispose(); 
 
-        public Task Publish<TMessage>(TMessage message)
+        async public Task Publish<TMessage>(TMessage message)
         {
             var body = JsonConvert.SerializeObject(message, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
-            Publish(message.GetType().Name, body);
-            return Task.CompletedTask;
+            await Publish(message.GetType().Name, body);
         }
-        public Task Publish(string messageTypeName, string message)
+        async public Task Publish(string messageTypeName, string message)
         {
             var body = Encoding.UTF8.GetBytes(message);
-            Publish(messageTypeName, body);
-            return Task.CompletedTask;
+            await Publish(messageTypeName, body);
         }
 
-        async public Task Publish(string messageTypeName, byte[] message)
+        public Task Publish(string messageTypeName, byte[] message)
         {
             IBasicProperties props = null;
 
@@ -57,16 +55,12 @@ namespace SW.Bus
                 props.Headers = new Dictionary<string, object>();
 
                 var jwt = busOptions.Token.WriteJwt((ClaimsIdentity)requestContext.User.Identity);
-
-                //var jwt = ((ClaimsIdentity)requestContext.User.Identity).GenerateJwt(busOptions.TokenKey, busOptions.TokenIssuer, busOptions.TokenAudience);
                 if (jwt != null) props.Headers.Add(BusOptions.UserHeaderName, jwt);
-                //props.Headers.Add(BusOptions.ValuesHeaderName, "");
-                //props.Headers.Add(BusOptions.CorrelationIdHeaderName, "");
             }
 
             model.BasicPublish($"{env}".ToLower(), messageTypeName.ToLower(), props, message);
 
-            return ;
+            return Task.CompletedTask;
 
         }
     }
