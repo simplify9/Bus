@@ -156,17 +156,17 @@ namespace SW.Bus
         {
             var requestContext = serviceProvider.GetService<RequestContext>();
 
-            if (requestContext != null && busOptions.Token.IsValid && basicProperties.Headers != null && basicProperties.Headers.TryGetValue(BusOptions.UserHeaderName, out var userHeaderBytes))
+            if (requestContext != null && busOptions.Token.IsValid && basicProperties.Headers != null && basicProperties.Headers.TryGetValue(RequestContext.UserHeaderName, out var userHeaderBytes))
             {
                 var userHeader = Encoding.UTF8.GetString((byte[])userHeaderBytes);
                 var user = busOptions.Token.ReadJwt(userHeader);
 
-                if (basicProperties.Headers.TryGetValue(BusOptions.ValuesHeaderName, out var valuesHeaderBytes))
+                if (basicProperties.Headers.TryGetValue(RequestContext.ValuesHeaderName, out var valuesHeaderBytes))
                 {
 
                 }
 
-                if (basicProperties.Headers.TryGetValue(BusOptions.CorrelationIdHeaderName, out var correlationIdHeaderBytes))
+                if (basicProperties.Headers.TryGetValue(RequestContext.CorrelationIdHeaderName, out var correlationIdHeaderBytes))
                 {
 
                 }
