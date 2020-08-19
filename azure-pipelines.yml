@@ -7,7 +7,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-- group: RabbitMQ
+
 - name: buildConfiguration
   value: 'Release'
 - name: major

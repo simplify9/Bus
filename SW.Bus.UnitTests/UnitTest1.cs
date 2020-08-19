@@ -21,7 +21,7 @@ namespace SW.Bus.UnitTests
         {
             testServer = new TestServer(WebHost.CreateDefaultBuilder()
                 .UseDefaultServiceProvider((context, options) => { options.ValidateScopes = true; })
-                .UseEnvironment("UnitTesting")
+                .UseEnvironment("Development")
                 .UseStartup<Startup>());
         }
 
