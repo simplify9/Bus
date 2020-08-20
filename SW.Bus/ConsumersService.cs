@@ -89,6 +89,7 @@ namespace SW.Bus
                 }
 
                 conn = connectionFactory.CreateConnection();
+                conn.ConnectionShutdown += ConnectionShutdown;
 
                 using (var model = conn.CreateModel())
                 {
@@ -152,6 +153,17 @@ namespace SW.Bus
             }
         }
 
+        private void ConnectionShutdown(object connection, ShutdownEventArgs args)
+        {
+            try
+            {
+                logger.LogWarning($"Consumer RabbitMq connection shutdown. {args.Cause}");
+            }
+            catch (Exception)
+            {
+            }
+        }
+
         void TryBuildBusRequestContext(IServiceProvider serviceProvider, IBasicProperties basicProperties)
         {
             var requestContext = serviceProvider.GetService<RequestContext>();
@@ -191,6 +203,7 @@ namespace SW.Bus
                 }
 
             conn?.Close();
+            conn?.Dispose();
 
             return Task.CompletedTask;
         }
