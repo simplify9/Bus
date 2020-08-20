@@ -6,7 +6,6 @@ namespace SW.Bus
 {
     public class BusOptions
     {
-
         public BusOptions()
         {
             QueuePrefetch = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase);
