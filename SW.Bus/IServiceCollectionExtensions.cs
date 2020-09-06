@@ -5,6 +5,7 @@ using RabbitMQ.Client;
 using SW.HttpExtensions;
 using SW.PrimitiveTypes;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace SW.Bus
@@ -46,12 +47,22 @@ namespace SW.Bus
             using (var model = conn.CreateModel())
             {
                 model.ExchangeDeclare($"{envName}".ToLower(), ExchangeType.Direct, true);
-
                 var deadletter = $"{envName}.deadletter".ToLower();
+                var retry = $"{envName}.retry".ToLower();
+                
                 model.ExchangeDeclare(deadletter, ExchangeType.Fanout, true);
-                model.QueueDeclare(deadletter, true, false, false);
-                model.QueueBind(deadletter, deadletter, string.Empty);
+                
+                var args = new Dictionary<string, object>
+                {
+                    { "x-dead-letter-exchange", $"{envName}".ToLower()}
+                };
 
+                
+                model.ExchangeDeclare(retry, ExchangeType.Direct, true , false,args);
+                model.QueueDeclare(deadletter, true, false, false);
+                
+                model.QueueBind(deadletter, deadletter, string.Empty);
+                
                 model.Close();
                 conn.Close();
 

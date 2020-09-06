@@ -17,13 +17,24 @@ namespace SW.Bus.SampleWeb.Pages
 
         public void OnGet()
         {
-            var car = new CarDto
+            var person = new PersonDto
             {
-                Model = "bmw"
+                Name = "some name"
             };
 
+            var task = publish.Publish(person);
+
+            
+
             for (var i = 0; i < 10; i++)
-                publish.Publish(car);
+            {
+                
+                publish.Publish(new CarDto
+                {
+                    Model = $"bmw{i}"
+                });
+            }
+                
         }
     }
 }

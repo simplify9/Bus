@@ -16,11 +16,20 @@ namespace SW.Bus.SampleWeb.Consumers
             this.requestContext = requestContext;
         }
 
-        async public Task Process(CarDto message)
+        public Task Process(CarDto message)
         {
+            Random gen = new Random();
+
+            // if(gen.Next(100) < 50)
+            // {
+            //     Console.WriteLine($"car {message.Model} process succeeded");
+            //     return Task.CompletedTask;
+            // }
+            //
+            
             //throw new NotImplementedException();
-            var user = requestContext.User;
-            //return Task.CompletedTask;
+            //var user = requestContext.User;
+            return Task.CompletedTask;
         }
     }
 }
