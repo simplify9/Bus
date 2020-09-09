@@ -22,18 +22,22 @@ namespace SW.Bus.SampleWeb.Pages
                 Name = "some name"
             };
 
-            var task = publish.Publish(person);
+            for (int i = 0; i < 100; i++)
+            {
+                var task = publish.Publish(person);
+            }
+            
 
             
 
-            for (var i = 0; i < 10; i++)
-            {
-                
-                publish.Publish(new CarDto
-                {
-                    Model = $"bmw{i}"
-                });
-            }
+            // for (var i = 0; i < 10; i++)
+            // {
+            //     
+            //     publish.Publish(new CarDto
+            //     {
+            //         Model = $"bmw{i}"
+            //     });
+            // }
                 
         }
     }

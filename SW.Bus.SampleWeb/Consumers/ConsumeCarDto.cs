@@ -1,9 +1,6 @@
-﻿using SW.Bus.SampleWeb.Models;
+﻿using System.Threading.Tasks;
+using SW.Bus.SampleWeb.Models;
 using SW.PrimitiveTypes;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace SW.Bus.SampleWeb.Consumers
 {
@@ -16,20 +13,11 @@ namespace SW.Bus.SampleWeb.Consumers
             this.requestContext = requestContext;
         }
 
-        public Task Process(CarDto message)
+        async public Task Process(CarDto message)
         {
-            Random gen = new Random();
-
-            // if(gen.Next(100) < 50)
-            // {
-            //     Console.WriteLine($"car {message.Model} process succeeded");
-            //     return Task.CompletedTask;
-            // }
-            //
-            
             //throw new NotImplementedException();
-            //var user = requestContext.User;
-            return Task.CompletedTask;
+            var user = requestContext.User;
+            //return Task.CompletedTask;
         }
     }
 }

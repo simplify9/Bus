@@ -17,18 +17,18 @@ namespace SW.Bus
     internal class Publisher : IPublish, IDisposable
     {
         readonly IModel model;
-        readonly string env;
 
         private readonly BusOptions busOptions;
         private readonly RequestContext requestContext;
+        private readonly ExchangeNames exchangeNames;
 
-        public Publisher(IHostEnvironment environment, IConnection connection, BusOptions busOptions, RequestContext requestContext)
+        public Publisher(IConnection connection, BusOptions busOptions, RequestContext requestContext, ExchangeNames exchangeNames)
         {
             model = connection.CreateModel();
-            env = environment.EnvironmentName;
 
             this.busOptions = busOptions;
             this.requestContext = requestContext;
+            this.exchangeNames = exchangeNames;
         }
 
         public void Dispose() => model.Dispose(); 
@@ -58,7 +58,7 @@ namespace SW.Bus
 
             }
 
-            model.BasicPublish($"{env}".ToLower(), messageTypeName.ToLower(), props, message);
+            model.BasicPublish(exchangeNames.ProcessExchange, messageTypeName.ToLower(), props, message);
 
             return Task.CompletedTask;
 

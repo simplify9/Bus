@@ -27,7 +27,7 @@ namespace SW.Bus.UnitTests
             services.AddBus(config => 
             {
                 config.ApplicationName = "unittestconsumer";
-                config.QueuePrefetch.Add("chanrgesearchindexupdater.chargeentitychangedmessage", 2);
+                config.Options.Add("chanrgesearchindexupdater.chargeentitychangedmessage", new QueueOptions{ Prefetch = 2});
                 config.DefaultQueuePrefetch = 4;
             });
             services.AddBusConsume();

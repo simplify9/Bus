@@ -6,14 +6,13 @@ namespace SW.Bus
 {
     public class BusOptions
     {
+        
         public BusOptions()
         {
-            QueuePrefetch = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase);
-            QueueRetryCount= new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase);
-            QueueRetryAfter= new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase);
+            Options = new Dictionary<string, QueueOptions>();
             DefaultQueuePrefetch = 4;
             DefaultRetryCount = 5;
-            DefaultRetryAfter = 5;
+            DefaultRetryAfter = 60;
             Token = new JwtTokenParameters();
             
         }
@@ -21,11 +20,9 @@ namespace SW.Bus
         public JwtTokenParameters Token { get; set; }
         public string ApplicationName { get; set; }
         public ushort DefaultQueuePrefetch { get; set; }
-        public IDictionary<string, ushort> QueuePrefetch { get; private set; }
         public ushort DefaultRetryCount { get; set; }
-        public IDictionary<string, ushort> QueueRetryCount { get; private set; }
-        public ushort DefaultRetryAfter { get; set; }
-        public IDictionary<string, ushort> QueueRetryAfter { get; private set; }
+        public uint DefaultRetryAfter { get; set; }
+        public IDictionary<string,QueueOptions> Options { get; set; }
 
     }
 }

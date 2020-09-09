@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using SW.Bus.SampleWeb.Models;
 using SW.PrimitiveTypes;
@@ -15,8 +16,7 @@ namespace SW.Bus.SampleWeb.Consumers
             //     Console.WriteLine($"person {message.Name} process succeeded");
             //     return Task.CompletedTask;
             // }
-            // throw new NotImplementedException();
-            return Task.CompletedTask;
+            throw new Exception("bad consumer!");
         }
     }
 }

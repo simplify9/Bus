@@ -10,7 +10,6 @@ using System.Reflection;
 
 namespace SW.Bus
 {
-
     internal class AddBus { }
 
     public static class IServiceCollectionExtensions
@@ -19,9 +18,9 @@ namespace SW.Bus
         {
             var busOptions = new BusOptions();
 
-            if (configure != null) configure.Invoke(busOptions);
+            configure?.Invoke(busOptions);
             services.AddSingleton(busOptions);
-
+            
             var serviceProvider = services.BuildServiceProvider();
             var configuration = serviceProvider.GetRequiredService<IConfiguration>();
 
@@ -35,38 +34,28 @@ namespace SW.Bus
             {
                 throw new BusException("Connection string named 'RabbitMQ' is required.");
             }
-
-            ConnectionFactory factory = new ConnectionFactory
+            var factory = new ConnectionFactory
             {
                 Uri = new Uri(rabbitUrl),
             };
 
             var envName = serviceProvider.GetRequiredService<IHostEnvironment>().EnvironmentName;
-
-            using (var conn = factory.CreateConnection())
-            using (var model = conn.CreateModel())
+            
+            var exchangeNames = new ExchangeNames
             {
-                model.ExchangeDeclare($"{envName}".ToLower(), ExchangeType.Direct, true);
-                var deadletter = $"{envName}.deadletter".ToLower();
-                var retry = $"{envName}.retry".ToLower();
-                
-                model.ExchangeDeclare(deadletter, ExchangeType.Fanout, true);
-                
-                var args = new Dictionary<string, object>
-                {
-                    { "x-dead-letter-exchange", $"{envName}".ToLower()}
-                };
+                ProcessExchange = envName.ToLower(),
+                DeadLetterExchange = $"{envName}.deadletter".ToLower()
+            };
 
-                
-                model.ExchangeDeclare(retry, ExchangeType.Direct, true , false,args);
-                model.QueueDeclare(deadletter, true, false, false);
-                
-                model.QueueBind(deadletter, deadletter, string.Empty);
-                
-                model.Close();
-                conn.Close();
-
-            }
+            services.AddSingleton(exchangeNames);
+            using var conn = factory.CreateConnection();
+            using var model = conn.CreateModel();
+            model.ExchangeDeclare(exchangeNames.ProcessExchange , ExchangeType.Direct, true);
+            
+            model.ExchangeDeclare(exchangeNames.DeadLetterExchange, ExchangeType.Direct, true);
+                            
+            model.Close();
+            conn.Close();
 
             return services;
         }
@@ -83,14 +72,12 @@ namespace SW.Bus
 
             var conn = factory.CreateConnection();
 
-            services.AddScoped<IPublish, Publisher>(serviceProvider =>
-            {
-                return new Publisher(
-                    serviceProvider.GetRequiredService<IHostEnvironment>(), 
-                    conn, 
-                    serviceProvider.GetRequiredService<BusOptions>(), 
-                    serviceProvider.GetRequiredService<RequestContext>());
-            });
+            services.AddScoped<IPublish, Publisher>(serviceProvider => new Publisher(
+                conn, 
+                serviceProvider.GetRequiredService<BusOptions>(), 
+                serviceProvider.GetRequiredService<RequestContext>(),
+                serviceProvider.GetRequiredService<ExchangeNames>()
+                ));
 
             return services;
         }
@@ -120,7 +107,7 @@ namespace SW.Bus
             {
                 var rabbitUrl = sp.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
 
-                ConnectionFactory factory = new ConnectionFactory
+                var factory = new ConnectionFactory
                 {
                     //AutomaticRecoveryEnabled = true,
                     Uri = new Uri(rabbitUrl),
@@ -132,6 +119,7 @@ namespace SW.Bus
 
             services.AddHostedService<ConsumersService>();
             services.AddSingleton<ConsumerDiscovery>();
+            services.AddSingleton<ConsumerRunner>();
 
             return services;
         }
