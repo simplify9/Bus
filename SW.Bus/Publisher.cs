@@ -16,22 +16,21 @@ namespace SW.Bus
 
     internal class Publisher : IPublish, IDisposable
     {
-        readonly IModel model;
-        readonly string env;
-
+        private IModel model;
+        private readonly string env;
+        private readonly IConnection connection;
         private readonly BusOptions busOptions;
         private readonly RequestContext requestContext;
 
         public Publisher(IHostEnvironment environment, IConnection connection, BusOptions busOptions, RequestContext requestContext)
         {
-            model = connection.CreateModel();
             env = environment.EnvironmentName;
-
+            this.connection = connection;
             this.busOptions = busOptions;
             this.requestContext = requestContext;
         }
 
-        public void Dispose() => model.Dispose(); 
+        public void Dispose() => model?.Dispose(); 
 
         async public Task Publish<TMessage>(TMessage message)
         {
@@ -46,6 +45,9 @@ namespace SW.Bus
 
         public Task Publish(string messageTypeName, byte[] message)
         {
+            if (model == null)
+                model = connection.CreateModel();
+
             IBasicProperties props = null;
 
             if (requestContext.IsValid && busOptions.Token.IsValid)
