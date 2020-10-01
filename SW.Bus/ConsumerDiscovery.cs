@@ -30,44 +30,36 @@ namespace SW.Bus
                 foreach (var svc in consumers)
                     foreach (var messageTypeName in await svc.GetMessageTypeNames())
 
-                        consumerDefinitions.Add(new ConsumerDefiniton
+                        consumerDefinitions.Add(new ConsumerDefiniton(queueNamePrefix, busOptions, $"{svc.GetType().Name}.{messageTypeName}".ToLower())
                         {
                             ServiceType = svc.GetType(),
                             MessageTypeName = messageTypeName,
-                            NakedQueueName = $"{svc.GetType().Name}.{messageTypeName}".ToLower()
                         });
 
                 var genericConsumers = scope.ServiceProvider.GetServices<IConsumeGenericBase>();
                 foreach (var svc in genericConsumers)
                     foreach (var type in svc.GetType().GetTypeInfo().ImplementedInterfaces.Where(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IConsume<>)))
 
-                        consumerDefinitions.Add(new ConsumerDefiniton
+                        consumerDefinitions.Add(new ConsumerDefiniton(queueNamePrefix, busOptions, $"{svc.GetType().Name}.{type.GetGenericArguments()[0].Name}".ToLower())
                         {
                             ServiceType = svc.GetType(),
                             MessageType = type.GetGenericArguments()[0],
                             MessageTypeName = type.GetGenericArguments()[0].Name,
                             Method = type.GetMethod("Process"),
-                            NakedQueueName = $"{svc.GetType().Name}.{type.GetGenericArguments()[0].Name}".ToLower()
                         });
 
             }
 
-            foreach (var c in consumerDefinitions)
-            {
-                busOptions.Options.TryGetValue(c.NakedQueueName, out var consumerOptions);
+            //foreach (var c in consumerDefinitions)
+            //{
+            //    busOptions.Options.TryGetValue(c.NakedQueueName, out var consumerOptions);
 
-                c.ProcessExchange = busOptions.ProcessExchange;
-                c.DeadLetterExchange = busOptions.DeadLetterExchange;
-                c.RetryCount = consumerOptions?.RetryCount ?? busOptions.DefaultRetryCount;
-                c.RetryAfter = consumerOptions?.RetryAfterSeconds ?? busOptions.DefaultRetryAfter;
-                c.QueuePrefetch = consumerOptions?.Prefetch ?? busOptions.DefaultQueuePrefetch;
-                c.QueueName = $"{queueNamePrefix}.{c.NakedQueueName}".ToLower();
-                c.RoutingKey = c.MessageTypeName.ToLower();
-                c.RetryRoutingKey = $"{c.NakedQueueName}.retry".ToLower();
-                c.RetryQueueName = $"{queueNamePrefix}.{c.NakedQueueName}.retry".ToLower();
-                c.BadQueueName = $"{queueNamePrefix}.{c.NakedQueueName}.bad".ToLower();
-                c.BadRoutingKey = $"{c.NakedQueueName}.bad".ToLower();
-            }
+            //    c.ProcessExchange = busOptions.ProcessExchange;
+            //    c.DeadLetterExchange = busOptions.DeadLetterExchange;
+            //    c.RetryCount = consumerOptions?.RetryCount ?? busOptions.DefaultRetryCount;
+            //    c.RetryAfter = consumerOptions?.RetryAfterSeconds ?? busOptions.DefaultRetryAfter;
+            //    c.QueuePrefetch = consumerOptions?.Prefetch ?? busOptions.DefaultQueuePrefetch;
+            //}
 
             return consumerDefinitions;
         }

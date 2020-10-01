@@ -30,7 +30,7 @@ namespace SW.Bus
         {
             var remainingRetryCount = consumerDefinition.RetryCount;
 
-            if (ea.BasicProperties.Headers?["x-death"] is List<object> xDeathList)
+            if (ea.BasicProperties?.Headers?["x-death"] is List<object> xDeathList)
             {
                 if (xDeathList.Count > 0 && xDeathList.First() is IDictionary<string, object> xDeathDic &&
                     xDeathDic["count"] is long lngTotalDeath && lngTotalDeath < int.MaxValue )
@@ -38,7 +38,6 @@ namespace SW.Bus
                 else
                     remainingRetryCount = 0;
             }
-
 
             var message = "";
             try
@@ -66,18 +65,19 @@ namespace SW.Bus
                 {
                     // reject the message, will be sent to wait queue
                     model.BasicReject(ea.DeliveryTag, false);
-                    
                     logger.LogWarning(ex,
                         @$"Failed to process message '{consumerDefinition.MessageTypeName}', for 
                             '{busOptions.ApplicationName}'. Number of retries remaining {remainingRetryCount}.
                             Total retries configured {consumerDefinition.RetryCount}.
-                            Message {message}  "); }
+                            Message {message}"); 
+                }
                 else
                 {
                     model.BasicAck(ea.DeliveryTag, false);
                     logger.LogError(ex,
                         @$"Failed to process message '{consumerDefinition.MessageTypeName}', for 
                                    '{busOptions.ApplicationName}'. Message {message}, Total retries {consumerDefinition.RetryCount}");
+                    
                     await PublishBad(model, ea.Body, ea.BasicProperties, consumerDefinition);
                 }
                 
@@ -119,7 +119,7 @@ namespace SW.Bus
                 props.Headers.Add(key, value);
 
             props.DeliveryMode =2;
-            model.BasicPublish(consumerDefiniton.DeadLetterExchange, consumerDefiniton.BadRoutingKey, props, body);
+            model.BasicPublish(busOptions.DeadLetterExchange, consumerDefiniton.BadRoutingKey, props, body);
 
             return Task.CompletedTask;
 

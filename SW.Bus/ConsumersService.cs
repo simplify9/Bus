@@ -37,9 +37,9 @@ namespace SW.Bus
 
             try
             {
-                
+
                 var consumerDefinitions = await consumerDiscovery.Load();
-                
+
                 conn = connectionFactory.CreateConnection();
                 conn.ConnectionShutdown += ConnectionShutdown;
 
@@ -47,23 +47,23 @@ namespace SW.Bus
                 {
                     foreach (var c in consumerDefinitions)
                     {
-                           
+
                         logger.LogInformation($"Declaring and binding: {c.QueueName}.");
 
                         // process queue 
                         model.QueueDeclare(c.QueueName, true, false, false, c.ProcessArgs);
-                        model.QueueBind(c.QueueName, c.ProcessExchange, c.RoutingKey, null);
-                        model.QueueBind(c.QueueName,c.ProcessExchange, c.RetryRoutingKey, null);
+                        model.QueueBind(c.QueueName, busOptions.ProcessExchange, c.RoutingKey, null);
+                        model.QueueBind(c.QueueName, busOptions.ProcessExchange, c.RetryRoutingKey, null);
                         // wait queue
-                        model.QueueDeclare(c.RetryQueueName, true, false, false,c.RetryArgs);
-                        model.QueueBind(c.RetryQueueName, c.DeadLetterExchange, c.RetryRoutingKey, null);
+                        model.QueueDeclare(c.RetryQueueName, true, false, false, c.RetryArgs);
+                        model.QueueBind(c.RetryQueueName, busOptions.DeadLetterExchange, c.RetryRoutingKey, null);
                         // bad queue
-                        model.QueueDeclare(c.BadQueueName, true, false, false,ConsumerDefiniton.BadArgs);
-                        model.QueueBind(c.BadQueueName, c.DeadLetterExchange, c.BadRoutingKey, null);
-                        
+                        model.QueueDeclare(c.BadQueueName, true, false, false, ConsumerDefiniton.BadArgs);
+                        model.QueueBind(c.BadQueueName, busOptions.DeadLetterExchange, c.BadRoutingKey, null);
+
                     }
                 }
-                
+
                 foreach (var consumerDefinition in consumerDefinitions)
                 {
                     var model = conn.CreateModel();
@@ -86,7 +86,7 @@ namespace SW.Bus
                 logger.LogError(ex, $"Starting {nameof(ConsumersService)}");
             }
         }
-        
+
         private void ConnectionShutdown(object connection, ShutdownEventArgs args)
         {
             try
@@ -98,7 +98,7 @@ namespace SW.Bus
             }
         }
 
-        
+
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
