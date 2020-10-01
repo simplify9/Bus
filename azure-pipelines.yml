@@ -2,6 +2,7 @@ name: $(version)
 
 trigger:
 - master
+- releases/*
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -10,12 +11,8 @@ variables:
 
 - name: buildConfiguration
   value: 'Release'
-- name: major
-  value: 2
-- name: minor
-  value: 0
 - name: version
-  value: $[format('{0}.{1}.{2}', variables['major'], variables['minor'], counter(format('{0}.{1}', variables['major'], variables['minor']), 0))]
+  value: $[format('3.0.{0}', counter('3.0', 0))]
 
 steps:
 - task: UseDotNet@2
@@ -51,7 +48,6 @@ steps:
 
 - task: DotNetCoreCLI@2
   displayName: 'dotnet pack'
-  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
   inputs:
     command: pack
     packagesToPack: 'SW.Bus/SW.Bus.csproj;'
@@ -59,7 +55,7 @@ steps:
     versioningScheme: byBuildNumber
 
 - task: NuGetCommand@2
-  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
+  condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/releases/')
   inputs:
     command: 'push'
     packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
