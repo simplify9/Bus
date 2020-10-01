@@ -16,22 +16,21 @@ namespace SW.Bus
 
     internal class Publisher : IPublish, IDisposable
     {
-        readonly IModel model;
-
+        private IModel model;
+        private readonly string env;
+        private readonly IConnection connection;
         private readonly BusOptions busOptions;
         private readonly RequestContext requestContext;
-        private readonly ExchangeNames exchangeNames;
 
-        public Publisher(IConnection connection, BusOptions busOptions, RequestContext requestContext, ExchangeNames exchangeNames)
+        public Publisher(IHostEnvironment environment, IConnection connection, BusOptions busOptions, RequestContext requestContext)
         {
-            model = connection.CreateModel();
-
+            env = environment.EnvironmentName;
+            this.connection = connection;
             this.busOptions = busOptions;
             this.requestContext = requestContext;
-            this.exchangeNames = exchangeNames;
         }
 
-        public void Dispose() => model.Dispose(); 
+        public void Dispose() => model?.Dispose(); 
 
         async public Task Publish<TMessage>(TMessage message)
         {
@@ -46,19 +45,21 @@ namespace SW.Bus
 
         public Task Publish(string messageTypeName, byte[] message)
         {
+            if (model == null)
+                model = connection.CreateModel();
+
             IBasicProperties props = null;
 
             if (requestContext.IsValid && busOptions.Token.IsValid)
             {
                 props = model.CreateBasicProperties();
                 props.Headers = new Dictionary<string, object>();
-                
+
                 var jwt = busOptions.Token.WriteJwt((ClaimsIdentity)requestContext.User.Identity);
                 props.Headers.Add(RequestContext.UserHeaderName, jwt);
-
             }
 
-            model.BasicPublish(exchangeNames.ProcessExchange, messageTypeName.ToLower(), props, message);
+            model.BasicPublish($"{env}".ToLower(), messageTypeName.ToLower(), props, message);
 
             return Task.CompletedTask;
 
