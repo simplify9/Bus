@@ -1,7 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using RabbitMQ.Client;
 using SW.HttpExtensions;
 using SW.PrimitiveTypes;
@@ -17,14 +14,12 @@ namespace SW.Bus
     internal class Publisher : IPublish, IDisposable
     {
         private IModel model;
-        //private readonly string env;
         private readonly IConnection connection;
         private readonly BusOptions busOptions;
         private readonly RequestContext requestContext;
 
         public Publisher(IConnection connection, BusOptions busOptions, RequestContext requestContext)
         {
-            //env = environment.EnvironmentName;
             this.connection = connection;
             this.busOptions = busOptions;
             this.requestContext = requestContext;
