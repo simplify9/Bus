@@ -24,10 +24,10 @@ namespace SW.Bus.UnitTests
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddBus(config => 
+            services.AddBus(config =>
             {
                 config.ApplicationName = "unittestconsumer";
-                config.Options.Add("chanrgesearchindexupdater.chargeentitychangedmessage", new QueueOptions{ Prefetch = 2});
+                config.AddQueueOption("chanrgesearchindexupdater.chargeentitychangedmessage", prefetch: 2);
                 config.DefaultQueuePrefetch = 4;
             });
             services.AddBusConsume();

@@ -1,25 +1,14 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using SW.PrimitiveTypes;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace SW.Bus
 {
-    
-    
     internal class ConsumersService : IHostedService
     {
 
@@ -66,8 +55,8 @@ namespace SW.Bus
                         model.QueueBind(c.QueueName, c.ProcessExchange, c.RoutingKey, null);
                         model.QueueBind(c.QueueName,c.ProcessExchange, c.RetryRoutingKey, null);
                         // wait queue
-                        model.QueueDeclare(c.WaitQueueName, true, false, false,c.RetryArgs);
-                        model.QueueBind(c.WaitQueueName, c.DeadLetterExchange, c.RetryRoutingKey, null);
+                        model.QueueDeclare(c.RetryQueueName, true, false, false,c.RetryArgs);
+                        model.QueueBind(c.RetryQueueName, c.DeadLetterExchange, c.RetryRoutingKey, null);
                         // bad queue
                         model.QueueDeclare(c.BadQueueName, true, false, false,ConsumerDefiniton.BadArgs);
                         model.QueueBind(c.BadQueueName, c.DeadLetterExchange, c.BadRoutingKey, null);

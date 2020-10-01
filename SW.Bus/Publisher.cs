@@ -17,20 +17,20 @@ namespace SW.Bus
     internal class Publisher : IPublish, IDisposable
     {
         private IModel model;
-        private readonly string env;
+        //private readonly string env;
         private readonly IConnection connection;
         private readonly BusOptions busOptions;
         private readonly RequestContext requestContext;
 
-        public Publisher(IHostEnvironment environment, IConnection connection, BusOptions busOptions, RequestContext requestContext)
+        public Publisher(IConnection connection, BusOptions busOptions, RequestContext requestContext)
         {
-            env = environment.EnvironmentName;
+            //env = environment.EnvironmentName;
             this.connection = connection;
             this.busOptions = busOptions;
             this.requestContext = requestContext;
         }
 
-        public void Dispose() => model?.Dispose(); 
+        public void Dispose() => model?.Dispose();
 
         async public Task Publish<TMessage>(TMessage message)
         {
@@ -59,7 +59,7 @@ namespace SW.Bus
                 props.Headers.Add(RequestContext.UserHeaderName, jwt);
             }
 
-            model.BasicPublish($"{env}".ToLower(), messageTypeName.ToLower(), props, message);
+            model.BasicPublish(busOptions.ProcessExchange, messageTypeName.ToLower(), props, message);
 
             return Task.CompletedTask;
 

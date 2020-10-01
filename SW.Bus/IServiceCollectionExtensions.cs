@@ -16,44 +16,37 @@ namespace SW.Bus
     {
         public static IServiceCollection AddBus(this IServiceCollection services, Action<BusOptions> configure = null)
         {
-            var busOptions = new BusOptions();
-
-            configure?.Invoke(busOptions);
-            services.AddSingleton(busOptions);
-            
             var serviceProvider = services.BuildServiceProvider();
             var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+            var envName = serviceProvider.GetRequiredService<IHostEnvironment>().EnvironmentName;
+
+            var busOptions = new BusOptions(envName);
+
+            configure?.Invoke(busOptions);
+
+            services.AddSingleton(busOptions);
 
             var rabbitUrl = serviceProvider.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
 
             if (!busOptions.Token.IsValid)
                 configuration.GetSection(JwtTokenParameters.ConfigurationSection).Bind(busOptions.Token);
 
-
             if (string.IsNullOrEmpty(rabbitUrl))
             {
                 throw new BusException("Connection string named 'RabbitMQ' is required.");
             }
+
             var factory = new ConnectionFactory
             {
                 Uri = new Uri(rabbitUrl),
             };
 
-            var envName = serviceProvider.GetRequiredService<IHostEnvironment>().EnvironmentName;
-            
-            var exchangeNames = new ExchangeNames
-            {
-                ProcessExchange = envName.ToLower(),
-                DeadLetterExchange = $"{envName}.deadletter".ToLower()
-            };
-
-            services.AddSingleton(exchangeNames);
             using var conn = factory.CreateConnection();
             using var model = conn.CreateModel();
-            model.ExchangeDeclare(exchangeNames.ProcessExchange , ExchangeType.Direct, true);
-            
-            model.ExchangeDeclare(exchangeNames.DeadLetterExchange, ExchangeType.Direct, true);
-                            
+
+            model.ExchangeDeclare(busOptions.ProcessExchange, ExchangeType.Direct, true);
+            model.ExchangeDeclare(busOptions.DeadLetterExchange, ExchangeType.Direct, true);
+
             model.Close();
             conn.Close();
 
@@ -73,11 +66,9 @@ namespace SW.Bus
             var conn = factory.CreateConnection();
 
             services.AddScoped<IPublish, Publisher>(serviceProvider => new Publisher(
-                conn, 
-                serviceProvider.GetRequiredService<BusOptions>(), 
-                serviceProvider.GetRequiredService<RequestContext>(),
-                serviceProvider.GetRequiredService<ExchangeNames>()
-                ));
+                conn,
+                serviceProvider.GetRequiredService<BusOptions>(),
+                serviceProvider.GetRequiredService<RequestContext>()));
 
             return services;
         }
