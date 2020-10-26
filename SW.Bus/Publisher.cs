@@ -40,8 +40,7 @@ namespace SW.Bus
 
         public Task Publish(string messageTypeName, byte[] message)
         {
-            if (model == null)
-                model = connection.CreateModel();
+            model ??= connection.CreateModel();
 
             IBasicProperties props = null;
 

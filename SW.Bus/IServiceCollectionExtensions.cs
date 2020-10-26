@@ -5,7 +5,6 @@ using RabbitMQ.Client;
 using SW.HttpExtensions;
 using SW.PrimitiveTypes;
 using System;
-using System.Collections.Generic;
 using System.Reflection;
 
 namespace SW.Bus
@@ -82,7 +81,7 @@ namespace SW.Bus
         public static IServiceCollection AddBusConsume(this IServiceCollection services, params Assembly[] assemblies)
         {
 
-            if (assemblies.Length == 0) assemblies = new Assembly[] { Assembly.GetCallingAssembly() };
+            if (assemblies.Length == 0) assemblies = new [] { Assembly.GetCallingAssembly() };
 
             services.Scan(scan => scan
                 .FromAssemblies(assemblies)

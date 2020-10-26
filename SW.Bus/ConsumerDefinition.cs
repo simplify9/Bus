@@ -4,19 +4,19 @@ using System.Reflection;
 
 namespace SW.Bus
 {
-    public class ConsumerDefiniton
+    public class ConsumerDefinition
     {
         private readonly string queueNamePrefix;
         private readonly BusOptions busOptions;
         private readonly QueueOptions queueOptions;
 
-        public ConsumerDefiniton(string queueNamePrefix, BusOptions busOptions, string nakedQueueName)
+        public ConsumerDefinition(string queueNamePrefix, BusOptions busOptions, string nakedQueueName)
         {
             this.queueNamePrefix = queueNamePrefix;
             this.busOptions = busOptions;
             NakedQueueName = nakedQueueName;
-
             busOptions.Options.TryGetValue(NakedQueueName, out queueOptions);
+            
         }
 
         public Type ServiceType { get; set; }
@@ -44,7 +44,7 @@ namespace SW.Bus
         {
             { "x-dead-letter-exchange", busOptions.DeadLetterExchange },
             { "x-dead-letter-routing-key", RetryRoutingKey },
-            //{ "x-message-ttl", (uint)TimeSpan.FromHours(12).TotalMilliseconds }
+            
         };
 
         public static IDictionary<string, object> BadArgs => new Dictionary<string, object>
