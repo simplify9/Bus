@@ -58,7 +58,7 @@ namespace SW.Bus
                         model.QueueDeclare(c.RetryQueueName, true, false, false, c.RetryArgs);
                         model.QueueBind(c.RetryQueueName, busOptions.DeadLetterExchange, c.RetryRoutingKey, null);
                         // bad queue
-                        model.QueueDeclare(c.BadQueueName, true, false, false, ConsumerDefiniton.BadArgs);
+                        model.QueueDeclare(c.BadQueueName, true, false, false, ConsumerDefinition.BadArgs);
                         model.QueueBind(c.BadQueueName, busOptions.DeadLetterExchange, c.BadRoutingKey, null);
 
                     }
@@ -68,8 +68,20 @@ namespace SW.Bus
                 {
                     var model = conn.CreateModel();
                     openModels.Add(model);
-
+                    
                     var consumer = new AsyncEventingBasicConsumer(model);
+                    consumer.Shutdown +=  (ch, args) =>
+                    {
+                        try
+                        {
+                            logger.LogWarning($"Consumer RabbitMq connection shutdown. {args.Cause}");
+                        }
+                        catch (Exception)
+                        {
+                            // ignored
+                        }
+                        return Task.CompletedTask;
+                    };
                     consumer.Received += async (ch, ea) =>
                     {
                         await consumerRunner.RunConsumer(ea, consumerDefinition, model);
@@ -95,6 +107,7 @@ namespace SW.Bus
             }
             catch (Exception)
             {
+                // ignored
             }
         }
 

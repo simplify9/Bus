@@ -26,7 +26,7 @@ namespace SW.Bus
             this.logger = logger;
         }
 
-        internal async Task RunConsumer(BasicDeliverEventArgs ea, ConsumerDefiniton consumerDefinition, IModel model)
+        internal async Task RunConsumer(BasicDeliverEventArgs ea, ConsumerDefinition consumerDefinition, IModel model)
         {
             var remainingRetryCount = consumerDefinition.RetryCount;
 
@@ -104,12 +104,12 @@ namespace SW.Bus
 
             }
 
-            requestContext.Set(user, null, null);
+            requestContext.Set(user);
         }
         
         private Task PublishBad(IModel model, 
             ReadOnlyMemory<byte> body, IBasicProperties messageProps, 
-            ConsumerDefiniton consumerDefiniton)
+            ConsumerDefinition consumerDefinition)
         {
 
             var props = model.CreateBasicProperties();
@@ -119,7 +119,7 @@ namespace SW.Bus
                 props.Headers.Add(key, value);
 
             props.DeliveryMode =2;
-            model.BasicPublish(busOptions.DeadLetterExchange, consumerDefiniton.BadRoutingKey, props, body);
+            model.BasicPublish(busOptions.DeadLetterExchange, consumerDefinition.BadRoutingKey, props, body);
 
             return Task.CompletedTask;
 
