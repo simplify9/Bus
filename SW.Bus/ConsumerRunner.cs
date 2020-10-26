@@ -68,8 +68,7 @@ namespace SW.Bus
                     // reject the message, will be sent to wait queue
                     model.BasicReject(ea.DeliveryTag, false);
                     logger.LogWarning(ex,
-                        @$"Failed to process message '{consumerDefinition.MessageTypeName}', for 
-                            '{busOptions.ApplicationName}'. Number of retries remaining {remainingRetryCount}.
+                        @$"Failed to process message '{consumerDefinition.MessageTypeName}', in '{consumerDefinition.ServiceType.Name}'. Number of retries remaining {remainingRetryCount}.
                             Total retries configured {consumerDefinition.RetryCount}.
                             Message {message}"); 
                 }
@@ -77,8 +76,7 @@ namespace SW.Bus
                 {
                     model.BasicAck(ea.DeliveryTag, false);
                     logger.LogError(ex,
-                        @$"Failed to process message '{consumerDefinition.MessageTypeName}', for 
-                                   '{busOptions.ApplicationName}'. Message {message}, Total retries {consumerDefinition.RetryCount}");
+                        @$"Failed to process message '{consumerDefinition.MessageTypeName}', in '{consumerDefinition.ServiceType.Name}'. Message {message}, Total retries {consumerDefinition.RetryCount}");
                     
                     await PublishBad(model, ea.Body, ea.BasicProperties, consumerDefinition);
                 }
