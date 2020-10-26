@@ -30,7 +30,9 @@ namespace SW.Bus
         {
             var remainingRetryCount = consumerDefinition.RetryCount;
 
-            if (ea.BasicProperties?.Headers?["x-death"] is List<object> xDeathList)
+            if (ea.BasicProperties?.Headers != null && 
+                ea.BasicProperties.Headers.ContainsKey("x-death") && 
+                ea.BasicProperties?.Headers?["x-death"] is List<object> xDeathList)
             {
                 if (xDeathList.Count > 0 && xDeathList.First() is IDictionary<string, object> xDeathDic &&
                     xDeathDic["count"] is long lngTotalDeath && lngTotalDeath < int.MaxValue )
