@@ -17,7 +17,7 @@ namespace SW.Bus
     {
         private readonly IServiceProvider sp;
         private readonly BusOptions busOptions;
-
+        
         private readonly ILogger<ConsumerRunner> logger;
         public ConsumerRunner(IServiceProvider sp,BusOptions busOptions, ILogger<ConsumerRunner> logger)
         {
@@ -42,12 +42,11 @@ namespace SW.Bus
             }
 
             var message = "";
-            
-            using var scope = sp.CreateScope();
-            
             try
             {
+                using var scope = sp.CreateScope();
                 TryBuildBusRequestContext(scope.ServiceProvider, ea.BasicProperties);
+                    
                 var body = ea.Body;
                 message = Encoding.UTF8.GetString(body.ToArray());
                 var svc = scope.ServiceProvider.GetRequiredService(consumerDefinition.ServiceType);
@@ -78,8 +77,8 @@ namespace SW.Bus
                     model.BasicAck(ea.DeliveryTag, false);
                     logger.LogError(ex,
                         @$"Failed to process message '{consumerDefinition.MessageTypeName}', in '{consumerDefinition.ServiceType.Name}'. Message {message}, Total retries {consumerDefinition.RetryCount}");
-                    var requestContext = scope.ServiceProvider.GetService<RequestContext>();
-                    await PublishBad(model, ea.Body, consumerDefinition,requestContext);
+                    
+                    await PublishBad(model, ea.Body, ea.BasicProperties, consumerDefinition);
                 }
                 
             }
@@ -108,10 +107,18 @@ namespace SW.Bus
             requestContext.Set(user);
         }
         
-        private Task PublishBad(IModel model, ReadOnlyMemory<byte> body, ConsumerDefinition consumerDefinition, RequestContext requestContext)
+        private Task PublishBad(IModel model, 
+            ReadOnlyMemory<byte> body, IBasicProperties messageProps, 
+            ConsumerDefinition consumerDefinition)
         {
-            
-            var props = requestContext.BuildBasicProperties(model, busOptions);
+
+            var props = model.CreateBasicProperties();
+            props.Headers = new Dictionary<string, object>();
+
+            foreach (var (key, value) in messageProps.Headers?.Where(
+                h=> h.Key != "x-death") ?? new Dictionary<string, object>())
+                props.Headers.Add(key, value);
+
             props.DeliveryMode =2;
             model.BasicPublish(busOptions.DeadLetterExchange, consumerDefinition.BadRoutingKey, props, body);
 

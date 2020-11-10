@@ -1,12 +1,16 @@
 ﻿using Newtonsoft.Json;
 using RabbitMQ.Client;
+using SW.HttpExtensions;
 using SW.PrimitiveTypes;
 using System;
+using System.Collections.Generic;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace SW.Bus
 {
+
     internal class Publisher : IPublish, IDisposable
     {
         private IModel model;
@@ -37,9 +41,19 @@ namespace SW.Bus
         public Task Publish(string messageTypeName, byte[] message)
         {
             model ??= connection.CreateModel();
-            
-            model.BasicPublish(busOptions.ProcessExchange, messageTypeName.ToLower(), 
-                requestContext.BuildBasicProperties(model,busOptions), message);
+
+            IBasicProperties props = null;
+
+            if (requestContext.IsValid && busOptions.Token.IsValid)
+            {
+                props = model.CreateBasicProperties();
+                props.Headers = new Dictionary<string, object>();
+
+                var jwt = busOptions.Token.WriteJwt((ClaimsIdentity)requestContext.User.Identity);
+                props.Headers.Add(RequestContext.UserHeaderName, jwt);
+            }
+
+            model.BasicPublish(busOptions.ProcessExchange, messageTypeName.ToLower(), props, message);
 
             return Task.CompletedTask;
 
