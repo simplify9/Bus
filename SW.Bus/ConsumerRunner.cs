@@ -115,7 +115,8 @@ namespace SW.Bus
             var props = model.CreateBasicProperties();
             props.Headers = new Dictionary<string, object>();
 
-            foreach (var (key, value) in messageProps.Headers ?? new Dictionary<string, object>())
+            foreach (var (key, value) in messageProps.Headers?.Where(
+                h=> h.Key != "x-death") ?? new Dictionary<string, object>())
                 props.Headers.Add(key, value);
 
             props.DeliveryMode =2;
