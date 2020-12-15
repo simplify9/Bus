@@ -78,7 +78,7 @@ namespace SW.Bus
                     logger.LogError(ex,
                         @$"Failed to process message '{consumerDefinition.MessageTypeName}', in '{consumerDefinition.ServiceType.Name}'. Message {message}, Total retries {consumerDefinition.RetryCount}");
                     
-                    await PublishBad(model, ea.Body, ea.BasicProperties, consumerDefinition);
+                    await PublishBad(model, ea.Body, ea.BasicProperties, consumerDefinition,ex);
                 }
                 
             }
@@ -109,9 +109,10 @@ namespace SW.Bus
         
         private Task PublishBad(IModel model, 
             ReadOnlyMemory<byte> body, IBasicProperties messageProps, 
-            ConsumerDefinition consumerDefinition)
+            ConsumerDefinition consumerDefinition, Exception ex)
         {
-
+            const string exception = "exception";
+            
             var props = model.CreateBasicProperties();
             props.Headers = new Dictionary<string, object>();
 
@@ -119,6 +120,11 @@ namespace SW.Bus
                 h=> h.Key != "x-death") ?? new Dictionary<string, object>())
                 props.Headers.Add(key, value);
 
+            // total bad is used in case the message was moved from bad to process (using shovel) and failed again. so we keep history of failures
+            var totalBad = props.Headers.Count(c => c.Key.StartsWith(exception)) + 1;
+            
+            props.Headers.Add($"{exception}{totalBad}", JsonConvert.SerializeObject(ex));
+            
             props.DeliveryMode =2;
             model.BasicPublish(busOptions.DeadLetterExchange, consumerDefinition.BadRoutingKey, props, body);
 
