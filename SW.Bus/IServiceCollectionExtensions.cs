@@ -57,9 +57,9 @@ namespace SW.Bus
             var sp = services.BuildServiceProvider();
             var rabbitUrl = sp.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
 
-            ConnectionFactory factory = new ConnectionFactory
+            var factory = new ConnectionFactory
             {
-                Uri = new Uri(rabbitUrl),
+                Uri = new Uri(rabbitUrl)
             };
 
             var conn = factory.CreateConnection();
@@ -96,12 +96,15 @@ namespace SW.Bus
             services.AddSingleton(sp =>
             {
                 var rabbitUrl = sp.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
-
+                
+                    
                 var factory = new ConnectionFactory
                 {
-                    //AutomaticRecoveryEnabled = true,
+                    
+                    //AutomaticRecoveryEnabled = false,
                     Uri = new Uri(rabbitUrl),
-                    DispatchConsumersAsync = true
+                    DispatchConsumersAsync = true,
+                    RequestedHeartbeat = sp.GetRequiredService<BusOptions>().RequestedHeartbeat 
                 };
 
                 return factory;
