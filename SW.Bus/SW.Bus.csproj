@@ -18,7 +18,7 @@
   <ItemGroup>
     <PackageReference Include="RabbitMQ.Client" Version="6.2.1" />
     <PackageReference Include="Scrutor" Version="3.3.0" />
-    <PackageReference Include="SimplyWorks.HttpExtensions" Version="2.0.40" />
+    <PackageReference Include="SimplyWorks.HttpExtensions" Version="2.0.44" />
   </ItemGroup>
 
   <ItemGroup>
