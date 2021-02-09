@@ -12,47 +12,20 @@ using System.IO.Compression;
 
 namespace SW.Bus
 {
-    
-    public class MessageCompressionService 
-    {
-        public Task<byte[]> Compress(string message, Encoding encoding) =>Compress(encoding.GetBytes(message));
-        
-        public async Task<byte[]> Compress(byte[] message)
-        {
-            await using var mStream = new MemoryStream();
-            await using var gStream = new GZipStream(mStream, CompressionLevel.Optimal);
-            await gStream.WriteAsync(message);
-            gStream.Close();
-            return mStream.ToArray();
-        }
-
-        public async Task<byte[]> DeCompress(byte[] message)
-        {
-            await using var mStream = new MemoryStream(message);
-            await using var gStream = new GZipStream(mStream, CompressionMode.Decompress);
-            await using var resultStream = new MemoryStream();
-            await gStream.CopyToAsync(resultStream);
-            return resultStream.ToArray();
-        }
-
-        public async Task<string> DeCompress(byte[] message, Encoding encoding)
-        {
-            var bytes = await DeCompress(message);
-            return encoding.GetString(bytes);
-        }
-    }
     internal class Publisher : IPublish, IDisposable
     {
         private IModel model;
         private readonly IConnection connection;
         private readonly BusOptions busOptions;
         private readonly RequestContext requestContext;
+        private readonly MessageCompressionService compressionService;
 
-        public Publisher(IConnection connection, BusOptions busOptions, RequestContext requestContext)
+        public Publisher(IConnection connection, BusOptions busOptions, RequestContext requestContext, MessageCompressionService compressionService)
         {
             this.connection = connection;
             this.busOptions = busOptions;
             this.requestContext = requestContext;
+            this.compressionService = compressionService;
         }
 
         public void Dispose() => model?.Dispose();
@@ -88,11 +61,7 @@ namespace SW.Bus
             if (message.Length > busOptions.MessageMaxSize)
             {
                 props.Headers.Add("Content-Encoding", "gzip");
-                await using var mStream = new MemoryStream();
-                await using var gStream = new GZipStream(mStream, CompressionLevel.Fastest);
-                await gStream.WriteAsync(message);
-                gStream.Close();
-                toPublish = mStream.ToArray();
+                toPublish = await compressionService.Compress(message);
             }
             else
             {

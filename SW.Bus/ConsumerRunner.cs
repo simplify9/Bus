@@ -21,11 +21,13 @@ namespace SW.Bus
         private readonly BusOptions busOptions;
         
         private readonly ILogger<ConsumerRunner> logger;
-        public ConsumerRunner(IServiceProvider sp,BusOptions busOptions, ILogger<ConsumerRunner> logger)
+        private readonly MessageCompressionService compressionService; 
+        public ConsumerRunner(IServiceProvider sp,BusOptions busOptions, ILogger<ConsumerRunner> logger, MessageCompressionService compressionService)
         {
             this.sp = sp;
             this.busOptions = busOptions;
             this.logger = logger;
+            this.compressionService = compressionService;
         }
 
         internal async Task RunConsumer(BasicDeliverEventArgs ea, ConsumerDefinition consumerDefinition, IModel model)
@@ -46,11 +48,12 @@ namespace SW.Bus
             {
                 using var scope = sp.CreateScope();
                 TryBuildBusRequestContext(scope.ServiceProvider, ea.BasicProperties);
-                    
-                // var body = ea.Body;
-                //
-                // message = Encoding.UTF8.GetString(body.ToArray());
-                message = await GetMessage(headers, ea.Body);
+                
+                if (headers == null || !headers.TryGetValue("Content-Encoding", out var header) || header.ToString() != "gzip")
+                    message = Encoding.UTF8.GetString(ea.Body.ToArray());
+                else
+                    message = await compressionService.DeCompress(ea.Body.ToArray(), Encoding.UTF8);
+                
                 var svc = scope.ServiceProvider.GetRequiredService(consumerDefinition.ServiceType);
                 if (consumerDefinition.MessageType == null)
                     await ((IConsume) svc).Process(consumerDefinition.MessageTypeName, message);
@@ -133,16 +136,16 @@ namespace SW.Bus
             return Task.CompletedTask;
         }
 
-        private async Task<string> GetMessage(IDictionary<string, object> headers, ReadOnlyMemory<byte> message)
-        {
-            if(headers == null || !headers.TryGetValue("Content-Encoding", out var header) || header.ToString() != "gzip")
-                return Encoding.UTF8.GetString(message.ToArray());
-
-            await using var mStream = new MemoryStream(message.ToArray());
-            await using var gStream = new GZipStream(mStream, CompressionMode.Decompress);
-            await using var resultStream = new MemoryStream();
-            await gStream.CopyToAsync(resultStream);
-            return Encoding.UTF8.GetString(resultStream.ToArray());
-        }
+        // private async Task<string> GetMessage(IDictionary<string, object> headers, ReadOnlyMemory<byte> message)
+        // {
+        //     if(headers == null || !headers.TryGetValue("Content-Encoding", out var header) || header.ToString() != "gzip")
+        //         return Encoding.UTF8.GetString(message.ToArray());
+        //
+        //     await using var mStream = new MemoryStream(message.ToArray());
+        //     await using var gStream = new GZipStream(mStream, CompressionMode.Decompress);
+        //     await using var resultStream = new MemoryStream();
+        //     await gStream.CopyToAsync(resultStream);
+        //     return Encoding.UTF8.GetString(resultStream.ToArray());
+        // }
     }
 }
