@@ -8,6 +8,7 @@ namespace SW.Bus.UnitTests
     {
         public int Id { get; set; }
         public int Name { get; set; }
+        
     }
 
     class TestDto2

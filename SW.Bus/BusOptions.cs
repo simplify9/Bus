@@ -18,7 +18,11 @@ namespace SW.Bus
             Token = new JwtTokenParameters();
             ProcessExchange = $"{versionPrefix}{environment}".ToLower();
             DeadLetterExchange = $"{versionPrefix}{environment}.deadletter".ToLower();
+            MessageMaxSize = 5_000_000;
+            
         }
+
+        public int MessageMaxSize { get; set; }
         public int HeartBeatTimeOut { get; set; }
 
         internal TimeSpan RequestedHeartbeat =>
