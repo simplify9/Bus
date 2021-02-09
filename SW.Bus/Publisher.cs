@@ -4,25 +4,28 @@ using SW.HttpExtensions;
 using SW.PrimitiveTypes;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO.Compression;
 
 namespace SW.Bus
 {
-
     internal class Publisher : IPublish, IDisposable
     {
         private IModel model;
         private readonly IConnection connection;
         private readonly BusOptions busOptions;
         private readonly RequestContext requestContext;
+        private readonly MessageCompressionService compressionService;
 
-        public Publisher(IConnection connection, BusOptions busOptions, RequestContext requestContext)
+        public Publisher(IConnection connection, BusOptions busOptions, RequestContext requestContext, MessageCompressionService compressionService)
         {
             this.connection = connection;
             this.busOptions = busOptions;
             this.requestContext = requestContext;
+            this.compressionService = compressionService;
         }
 
         public void Dispose() => model?.Dispose();
@@ -38,24 +41,36 @@ namespace SW.Bus
             await Publish(messageTypeName, body);
         }
 
-        public Task Publish(string messageTypeName, byte[] message)
+        public async Task Publish(string messageTypeName, byte[] message)
         {
             model ??= connection.CreateModel();
 
             IBasicProperties props = null;
 
+            props = model.CreateBasicProperties();
+            props.Headers = new Dictionary<string, object>();
+            
             if (requestContext.IsValid && busOptions.Token.IsValid)
             {
-                props = model.CreateBasicProperties();
-                props.Headers = new Dictionary<string, object>();
-
                 var jwt = busOptions.Token.WriteJwt((ClaimsIdentity)requestContext.User.Identity);
                 props.Headers.Add(RequestContext.UserHeaderName, jwt);
             }
 
-            model.BasicPublish(busOptions.ProcessExchange, messageTypeName.ToLower(), props, message);
+            byte[] toPublish;
+            
+            if (message.Length > busOptions.MessageMaxSize)
+            {
+                props.Headers.Add("Content-Encoding", "gzip");
+                toPublish = await compressionService.Compress(message);
+            }
+            else
+            {
+                toPublish = message;
+            }
 
-            return Task.CompletedTask;
+            model.BasicPublish(busOptions.ProcessExchange, messageTypeName.ToLower(), props, toPublish);
+
+            
 
         }
     }

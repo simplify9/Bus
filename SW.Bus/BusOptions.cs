@@ -14,15 +14,14 @@ namespace SW.Bus
             DefaultQueuePrefetch = 4;
             DefaultRetryCount = 5;
             DefaultRetryAfter = 60;
-            HeartBeatTimeOut = 0;
             Token = new JwtTokenParameters();
             ProcessExchange = $"{versionPrefix}{environment}".ToLower();
             DeadLetterExchange = $"{versionPrefix}{environment}.deadletter".ToLower();
+            MessageMaxSize = 5_000_000;
+            
         }
-        public int HeartBeatTimeOut { get; set; }
 
-        internal TimeSpan RequestedHeartbeat =>
-            HeartBeatTimeOut > 0 ? TimeSpan.FromSeconds(HeartBeatTimeOut) : TimeSpan.Zero; 
+        public int MessageMaxSize { get; set; }
         public JwtTokenParameters Token { get; set; }
         public string ApplicationName { get; set; }
         public ushort DefaultQueuePrefetch { get; set; }

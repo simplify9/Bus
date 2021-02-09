@@ -24,6 +24,7 @@ namespace SW.Bus
             configure?.Invoke(busOptions);
 
             services.AddSingleton(busOptions);
+            services.AddSingleton(new MessageCompressionService());
 
             var rabbitUrl = serviceProvider.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
 
@@ -31,9 +32,8 @@ namespace SW.Bus
                 configuration.GetSection(JwtTokenParameters.ConfigurationSection).Bind(busOptions.Token);
 
             if (string.IsNullOrEmpty(rabbitUrl))
-            {
                 throw new BusException("Connection string named 'RabbitMQ' is required.");
-            }
+            
 
             var factory = new ConnectionFactory
             {
@@ -67,7 +67,8 @@ namespace SW.Bus
             services.AddScoped<IPublish, Publisher>(serviceProvider => new Publisher(
                 conn,
                 serviceProvider.GetRequiredService<BusOptions>(),
-                serviceProvider.GetRequiredService<RequestContext>()));
+                serviceProvider.GetRequiredService<RequestContext>(), 
+                serviceProvider.GetRequiredService<MessageCompressionService>() ));
 
             return services;
         }
@@ -103,8 +104,7 @@ namespace SW.Bus
                     
                     //AutomaticRecoveryEnabled = false,
                     Uri = new Uri(rabbitUrl),
-                    DispatchConsumersAsync = true,
-                    RequestedHeartbeat = sp.GetRequiredService<BusOptions>().RequestedHeartbeat 
+                    DispatchConsumersAsync = true
                 };
 
                 return factory;

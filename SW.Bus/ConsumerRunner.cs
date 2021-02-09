@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,36 +21,39 @@ namespace SW.Bus
         private readonly BusOptions busOptions;
         
         private readonly ILogger<ConsumerRunner> logger;
-        public ConsumerRunner(IServiceProvider sp,BusOptions busOptions, ILogger<ConsumerRunner> logger)
+        private readonly MessageCompressionService compressionService; 
+        public ConsumerRunner(IServiceProvider sp,BusOptions busOptions, ILogger<ConsumerRunner> logger, MessageCompressionService compressionService)
         {
             this.sp = sp;
             this.busOptions = busOptions;
             this.logger = logger;
+            this.compressionService = compressionService;
         }
 
         internal async Task RunConsumer(BasicDeliverEventArgs ea, ConsumerDefinition consumerDefinition, IModel model)
         {
             var remainingRetryCount = consumerDefinition.RetryCount;
-
-            if (ea.BasicProperties?.Headers != null && 
-                ea.BasicProperties.Headers.ContainsKey("x-death") && 
-                ea.BasicProperties?.Headers?["x-death"] is List<object> xDeathList)
-            {
+            var headers = ea.BasicProperties?.Headers;
+            
+            if (headers != null && headers.ContainsKey("x-death") && headers?["x-death"] is List<object> xDeathList)
                 if (xDeathList.Count > 0 && xDeathList.First() is IDictionary<string, object> xDeathDic &&
                     xDeathDic["count"] is long lngTotalDeath && lngTotalDeath < int.MaxValue )
                     remainingRetryCount = consumerDefinition.RetryCount - Convert.ToInt32(lngTotalDeath);
                 else
                     remainingRetryCount = 0;
-            }
-
+            
+            
             var message = "";
             try
             {
                 using var scope = sp.CreateScope();
                 TryBuildBusRequestContext(scope.ServiceProvider, ea.BasicProperties);
-                    
-                var body = ea.Body;
-                message = Encoding.UTF8.GetString(body.ToArray());
+                
+                if (headers == null || !headers.TryGetValue("Content-Encoding", out var header) || header.ToString() != "gzip")
+                    message = Encoding.UTF8.GetString(ea.Body.ToArray());
+                else
+                    message = await compressionService.DeCompress(ea.Body.ToArray(), Encoding.UTF8);
+                
                 var svc = scope.ServiceProvider.GetRequiredService(consumerDefinition.ServiceType);
                 if (consumerDefinition.MessageType == null)
                     await ((IConsume) svc).Process(consumerDefinition.MessageTypeName, message);
@@ -129,7 +134,18 @@ namespace SW.Bus
             model.BasicPublish(busOptions.DeadLetterExchange, consumerDefinition.BadRoutingKey, props, body);
 
             return Task.CompletedTask;
-
         }
+
+        // private async Task<string> GetMessage(IDictionary<string, object> headers, ReadOnlyMemory<byte> message)
+        // {
+        //     if(headers == null || !headers.TryGetValue("Content-Encoding", out var header) || header.ToString() != "gzip")
+        //         return Encoding.UTF8.GetString(message.ToArray());
+        //
+        //     await using var mStream = new MemoryStream(message.ToArray());
+        //     await using var gStream = new GZipStream(mStream, CompressionMode.Decompress);
+        //     await using var resultStream = new MemoryStream();
+        //     await gStream.CopyToAsync(resultStream);
+        //     return Encoding.UTF8.GetString(resultStream.ToArray());
+        // }
     }
 }
