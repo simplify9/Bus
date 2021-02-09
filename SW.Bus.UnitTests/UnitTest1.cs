@@ -31,7 +31,7 @@ namespace SW.Bus.UnitTests
 
             var resultDecompressed = await service.DeCompress(resultCompressed, Encoding.UTF8);
             
-            Assert.AreEqual(data,resultCompressed);
+            Assert.AreEqual(data,resultDecompressed);
         }
     }
     [TestClass]
