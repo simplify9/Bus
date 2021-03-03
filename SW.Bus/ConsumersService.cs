@@ -74,7 +74,7 @@ namespace SW.Bus
                     {
                         try
                         {
-                            logger.LogWarning($"Consumer RabbitMq connection shutdown. {args.Cause}");
+                            logger.LogWarning($"Consumer RabbitMq connection shutdown. {args}");
                         }
                         catch (Exception)
                         {
