@@ -43,15 +43,20 @@ namespace SW.Bus
             model ??= connection.CreateModel();
 
             IBasicProperties props = null;
-
+            props = model.CreateBasicProperties();
             if (requestContext.IsValid && busOptions.Token.IsValid)
             {
-                props = model.CreateBasicProperties();
+               
                 props.Headers = new Dictionary<string, object>();
 
                 var jwt = busOptions.Token.WriteJwt((ClaimsIdentity)requestContext.User.Identity);
                 props.Headers.Add(RequestContext.UserHeaderName, jwt);
+                
+                
             }
+            if (requestContext.CorrelationId != null)
+                props.Headers.Add(RequestContext.CorrelationIdHeaderName, requestContext.CorrelationId);
+           
 
             model.BasicPublish(busOptions.ProcessExchange, messageTypeName.ToLower(), props, message);
 
