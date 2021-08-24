@@ -57,6 +57,9 @@ namespace SW.Bus
 
                 var jwt = busOptions.Token.WriteJwt((ClaimsIdentity)requestContext.User.Identity);
                 props.Headers.Add(RequestContext.UserHeaderName, jwt);
+                
+                if (requestContext.CorrelationId != null)
+                    props.Headers.Add(RequestContext.CorrelationIdHeaderName, requestContext.CorrelationId);
             }
 
             model.BasicPublish($"{env}".ToLower(), messageTypeName.ToLower(), props, message);

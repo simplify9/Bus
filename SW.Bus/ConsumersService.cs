@@ -178,12 +178,13 @@ namespace SW.Bus
 
                 }
 
+                string correlationHeader = null;
                 if (basicProperties.Headers.TryGetValue(RequestContext.CorrelationIdHeaderName, out var correlationIdHeaderBytes))
                 {
-
+                    correlationHeader = Encoding.UTF8.GetString((byte[])correlationIdHeaderBytes);
                 }
 
-                requestContext.Set(user, null, null);
+                requestContext.Set(user, null, correlationHeader);
 
             }
         }
