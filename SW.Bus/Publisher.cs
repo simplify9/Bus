@@ -44,10 +44,11 @@ namespace SW.Bus
 
             IBasicProperties props = null;
             props = model.CreateBasicProperties();
+            props.Headers = new Dictionary<string, object>();
             if (requestContext.IsValid && busOptions.Token.IsValid)
             {
                
-                props.Headers = new Dictionary<string, object>();
+                
 
                 var jwt = busOptions.Token.WriteJwt((ClaimsIdentity)requestContext.User.Identity);
                 props.Headers.Add(RequestContext.UserHeaderName, jwt);
