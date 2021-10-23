@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
     <PackageId>SimplyWorks.Bus</PackageId>
     <Product>SimplyWorks.Bus</Product>
     <Authors>Simplify9</Authors>
@@ -16,9 +16,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="RabbitMQ.Client" Version="6.2.1" />
+    <PackageReference Include="RabbitMQ.Client" Version="6.2.2" />
     <PackageReference Include="Scrutor" Version="3.3.0" />
-    <PackageReference Include="SimplyWorks.HttpExtensions" Version="2.0.44" />
+    <PackageReference Include="SimplyWorks.HttpExtensions" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>
