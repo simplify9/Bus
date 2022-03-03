@@ -9,15 +9,21 @@ using System.Reflection;
 
 namespace SW.Bus
 {
-    internal class AddBus { }
+    internal class AddBus
+    {
+    }
 
     public static class IServiceCollectionExtensions
     {
-        public static IServiceCollection AddBus(this IServiceCollection services, Action<BusOptions> configure = null)
+        public static IServiceCollection AddBus(this IServiceCollection services, Action<BusOptions> configure = null,
+            string environmentName = null)
         {
             var serviceProvider = services.BuildServiceProvider();
             var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-            var envName = serviceProvider.GetRequiredService<IHostEnvironment>().EnvironmentName;
+            var envName = string.IsNullOrEmpty(environmentName)
+                ? serviceProvider.GetRequiredService<IHostEnvironment>().EnvironmentName
+                : environmentName;
+
 
             var busOptions = new BusOptions(envName);
 
@@ -80,8 +86,7 @@ namespace SW.Bus
 
         public static IServiceCollection AddBusConsume(this IServiceCollection services, params Assembly[] assemblies)
         {
-
-            if (assemblies.Length == 0) assemblies = new [] { Assembly.GetCallingAssembly() };
+            if (assemblies.Length == 0) assemblies = new[] {Assembly.GetCallingAssembly()};
 
             services.Scan(scan => scan
                 .FromAssemblies(assemblies)
@@ -96,15 +101,14 @@ namespace SW.Bus
             services.AddSingleton(sp =>
             {
                 var rabbitUrl = sp.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
-                
-                    
+
+
                 var factory = new ConnectionFactory
                 {
-                    
                     //AutomaticRecoveryEnabled = false,
                     Uri = new Uri(rabbitUrl),
                     DispatchConsumersAsync = true,
-                    RequestedHeartbeat = sp.GetRequiredService<BusOptions>().RequestedHeartbeat 
+                    RequestedHeartbeat = sp.GetRequiredService<BusOptions>().RequestedHeartbeat
                 };
 
                 return factory;
