@@ -11,22 +11,19 @@ using System.Threading.Tasks;
 namespace SW.Bus
 {
 
-    internal class Publisher : IPublish, IDisposable
+    internal class Publisher : IPublish
     {
-        private IModel model;
-        private readonly IConnection connection;
+        private readonly IModel model;
         private readonly BusOptions busOptions;
         private readonly RequestContext requestContext;
 
-        public Publisher(IConnection connection, BusOptions busOptions, RequestContext requestContext)
+        public Publisher(IModel model, BusOptions busOptions, RequestContext requestContext)
         {
-            this.connection = connection;
+            this.model = model;
             this.busOptions = busOptions;
             this.requestContext = requestContext;
         }
-
-        public void Dispose() => model?.Dispose();
-
+        
         async public Task Publish<TMessage>(TMessage message)
         {
             var body = JsonConvert.SerializeObject(message, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
@@ -40,8 +37,6 @@ namespace SW.Bus
 
         public Task Publish(string messageTypeName, byte[] message)
         {
-            model ??= connection.CreateModel();
-
             IBasicProperties props = null;
             props = model.CreateBasicProperties();
             props.Headers = new Dictionary<string, object>();

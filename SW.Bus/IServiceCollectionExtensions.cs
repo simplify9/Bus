@@ -69,9 +69,10 @@ namespace SW.Bus
             };
 
             var conn = factory.CreateConnection();
+            var model = conn.CreateModel();
 
             services.AddScoped<IPublish, Publisher>(serviceProvider => new Publisher(
-                conn,
+                model,
                 serviceProvider.GetRequiredService<BusOptions>(),
                 serviceProvider.GetRequiredService<RequestContext>()));
 
