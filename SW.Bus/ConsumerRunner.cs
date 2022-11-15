@@ -45,7 +45,7 @@ namespace SW.Bus
             try
             {
                 using var scope = sp.CreateScope();
-                TryBuildBusRequestContext(scope.ServiceProvider, ea.BasicProperties);
+                TryBuildBusRequestContext(scope.ServiceProvider, ea.BasicProperties,remainingRetryCount);
                     
                 var body = ea.Body;
                 message = Encoding.UTF8.GetString(body.ToArray());
@@ -84,7 +84,8 @@ namespace SW.Bus
             }
         }
         
-        void TryBuildBusRequestContext(IServiceProvider serviceProvider, IBasicProperties basicProperties)
+        void TryBuildBusRequestContext(IServiceProvider serviceProvider, IBasicProperties basicProperties, 
+            int remainingRetries)
         {
             var requestContext = serviceProvider.GetService<RequestContext>();
 
@@ -94,17 +95,15 @@ namespace SW.Bus
             var userHeader = Encoding.UTF8.GetString((byte[])userHeaderBytes);
             var user = busOptions.Token.ReadJwt(userHeader);
 
-            if (basicProperties.Headers.TryGetValue(RequestContext.ValuesHeaderName, out var valuesHeaderBytes))
-            {
-
-            }
-
             string correlationHeader = null;
             if (basicProperties.Headers.TryGetValue(RequestContext.CorrelationIdHeaderName, out var correlationIdHeaderBytes))
             {
                 correlationHeader = Encoding.UTF8.GetString((byte[])correlationIdHeaderBytes);
             }
-
+            var requestValues = new RequestValue[]
+                { new ("RemainingRetries", remainingRetries.ToString(), RequestValueType.ServiceBusValue) };
+            
+            requestContext.Set(user, requestValues, correlationHeader);
             requestContext.Set(user, null, correlationHeader);
         }
         
