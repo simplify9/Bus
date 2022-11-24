@@ -88,9 +88,15 @@ namespace SW.Bus
             int remainingRetries)
         {
             var requestContext = serviceProvider.GetService<RequestContext>();
-
+            var requestValues = new RequestValue[]
+                { new ("RemainingRetries", remainingRetries.ToString(), RequestValueType.ServiceBusValue) };
+            
             if (requestContext == null || !busOptions.Token.IsValid || basicProperties.Headers == null ||
-                !basicProperties.Headers.TryGetValue(RequestContext.UserHeaderName, out var userHeaderBytes)) return;
+                !basicProperties.Headers.TryGetValue(RequestContext.UserHeaderName, out var userHeaderBytes))
+            {
+                requestContext?.Set(null, requestValues);
+                return;
+            }
             
             var userHeader = Encoding.UTF8.GetString((byte[])userHeaderBytes);
             var user = busOptions.Token.ReadJwt(userHeader);
@@ -100,8 +106,7 @@ namespace SW.Bus
             {
                 correlationHeader = Encoding.UTF8.GetString((byte[])correlationIdHeaderBytes);
             }
-            var requestValues = new RequestValue[]
-                { new ("RemainingRetries", remainingRetries.ToString(), RequestValueType.ServiceBusValue) };
+            
             
             requestContext.Set(user, requestValues, correlationHeader);
             requestContext.Set(user, null, correlationHeader);
