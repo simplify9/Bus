@@ -40,10 +40,11 @@ namespace SW.Bus
             {
                 throw new BusException("Connection string named 'RabbitMQ' is required.");
             }
-
+            
             var factory = new ConnectionFactory
             {
                 Uri = new Uri(rabbitUrl),
+                ClientProvidedName =$"{Assembly.GetCallingAssembly().GetName().Name} Exchange Declarer"
             };
 
             using var conn = factory.CreateConnection();
@@ -65,7 +66,8 @@ namespace SW.Bus
 
             var factory = new ConnectionFactory
             {
-                Uri = new Uri(rabbitUrl)
+                Uri = new Uri(rabbitUrl),
+                ClientProvidedName = $"{Assembly.GetCallingAssembly().GetName().Name} Publisher"
             };
 
             var conn = factory.CreateConnection();
@@ -99,6 +101,7 @@ namespace SW.Bus
                 .AddClasses(classes => classes.AssignableTo(typeof(IConsume<>)))
                 .AsImplementedInterfaces().AsSelf().WithScopedLifetime());
 
+            var clientProvidedName = $"{Assembly.GetCallingAssembly().GetName().Name} Consumer";
             services.AddSingleton(sp =>
             {
                 var rabbitUrl = sp.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
@@ -109,7 +112,8 @@ namespace SW.Bus
                     //AutomaticRecoveryEnabled = false,
                     Uri = new Uri(rabbitUrl),
                     DispatchConsumersAsync = true,
-                    RequestedHeartbeat = sp.GetRequiredService<BusOptions>().RequestedHeartbeat
+                    RequestedHeartbeat = sp.GetRequiredService<BusOptions>().RequestedHeartbeat,
+                    ClientProvidedName = clientProvidedName
                 };
 
                 return factory;
