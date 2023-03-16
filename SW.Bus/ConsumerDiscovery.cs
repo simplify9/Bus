@@ -19,7 +19,7 @@ namespace SW.Bus
             this.busOptions = busOptions;
         }
 
-        public async Task<ICollection<ConsumerDefinition>> Load()
+        public async Task<ICollection<ConsumerDefinition>> Load(bool consumersOnly = false)
         {
             var consumerDefinitions = new List<ConsumerDefinition>();
             var queueNamePrefix = $"{busOptions.ProcessExchange}{(string.IsNullOrWhiteSpace(busOptions.ApplicationName) ? "" : $".{busOptions.ApplicationName}")}";
@@ -35,6 +35,8 @@ namespace SW.Bus
                     MessageTypeName = messageTypeName,
                 });
 
+            if (consumersOnly)
+                return consumerDefinitions;
             var genericConsumers = scope.ServiceProvider.GetServices<IConsumeGenericBase>();
             foreach (var svc in genericConsumers)
             foreach (var type in svc.GetType().GetTypeInfo().ImplementedInterfaces.Where(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IConsume<>)))

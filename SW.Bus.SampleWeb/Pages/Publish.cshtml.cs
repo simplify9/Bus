@@ -1,5 +1,8 @@
+using System;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json;
 using SW.Bus.SampleWeb.Models;
 using SW.PrimitiveTypes;
 
@@ -9,14 +12,17 @@ namespace SW.Bus.SampleWeb.Pages
     public class PublishModel : PageModel
     {
         private readonly IPublish publish;
-
-        public PublishModel(IPublish publish)
+        private readonly IMemoryCache cache;
+        public PublishModel(IPublish publish, IMemoryCache cache)
         {
             this.publish = publish;
+            this.cache = cache;
         }
-
+        
         public void OnGet()
         {
+            cache.TryGetValue("total", out int total);
+                        
             var person = new PersonDto
             {
                 Name = "some name"
@@ -24,7 +30,7 @@ namespace SW.Bus.SampleWeb.Pages
 
             for (var i = 0; i < 100; i++)
             {
-                var task = publish.Publish(person);
+                publish.Publish(person).Wait();
             }
             
 
@@ -36,9 +42,14 @@ namespace SW.Bus.SampleWeb.Pages
                 publish.Publish(new CarDto
                 {
                     Model = $"bmw{i}"
-                });
+                }).Wait();
             }
-                
+
+            for (int i = 0; i < total; i++)
+            {
+                publish.Publish($"Msg{i + 1}", JsonConvert.SerializeObject(new { Id = Guid.NewGuid() , Value = i })).Wait();
+            }
+            cache.Set("total", total + 1, TimeSpan.FromDays(1));
         }
     }
 }

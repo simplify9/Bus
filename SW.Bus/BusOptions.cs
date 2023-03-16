@@ -31,6 +31,7 @@ namespace SW.Bus
         public IDictionary<string, QueueOptions> Options { get; }
         public string ProcessExchange { get; }
         public string DeadLetterExchange { get; }
+        public int RefreshConsumersInterval { get; set; } = 1;
         
         public void AddQueueOption(string queueName, ushort? prefetch = null, int? retryCount = null, uint? retryAfterSeconds = null)
         {
