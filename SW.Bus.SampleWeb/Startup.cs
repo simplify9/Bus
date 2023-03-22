@@ -37,19 +37,19 @@ namespace SW.Bus.SampleWeb
                 config.JsonSerializerOptions.PropertyNamingPolicy = null;
             });
 
-            services.AddBus(config => 
+            services.AddBus(config =>
             {
+                config.ApplicationName = "TestApp";
                 config.Token.Key = Configuration["Token:Key"];
                 config.Token.Issuer  = Configuration["Token:Issuer"];
                 config.Token.Audience = Configuration["Token:Audience"];
 
             });
-            services.AddBusPublish();
-            services.AddBusConsume();
             services.AddCqApi();
             services.AddRazorPages();
             services.AddScoped<RequestContext>();
-
+            services.AddBusPublish();
+            services.AddBusConsume();
             services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).
                 AddCookie(options =>
                 {
