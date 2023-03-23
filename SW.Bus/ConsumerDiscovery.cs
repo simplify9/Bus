@@ -19,7 +19,7 @@ namespace SW.Bus
             this.busOptions = busOptions;
         }
 
-        public async Task<ICollection<ConsumerDefinition>> Load()
+        internal async Task<ICollection<ConsumerDefinition>> Load(bool consumersOnly = false)
         {
             var consumerDefinitions = new List<ConsumerDefinition>();
             var queueNamePrefix = $"{busOptions.ProcessExchange}{(string.IsNullOrWhiteSpace(busOptions.ApplicationName) ? "" : $".{busOptions.ApplicationName}")}";
@@ -35,6 +35,8 @@ namespace SW.Bus
                     MessageTypeName = messageTypeName,
                 });
 
+            if (consumersOnly)
+                return consumerDefinitions;
             var genericConsumers = scope.ServiceProvider.GetServices<IConsumeGenericBase>();
             foreach (var svc in genericConsumers)
             foreach (var type in svc.GetType().GetTypeInfo().ImplementedInterfaces.Where(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IConsume<>)))
@@ -45,6 +47,26 @@ namespace SW.Bus
                     MessageType = type.GetGenericArguments()[0],
                     MessageTypeName = type.GetGenericArguments()[0].Name,
                     Method = type.GetMethod("Process"),
+                });
+
+            return consumerDefinitions;
+        }
+        
+        internal ICollection<ListenerDefinition> LoadListeners()
+        {
+            var consumerDefinitions = new List<ListenerDefinition>();
+            using var scope = sp.CreateScope();
+            
+            var genericConsumers = scope.ServiceProvider.GetServices<IListenGenericBase>();
+            foreach (var svc in genericConsumers)
+            foreach (var type in svc.GetType().GetTypeInfo().ImplementedInterfaces.Where(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IListen<>)))
+                consumerDefinitions.Add(new ListenerDefinition
+                {
+                    ServiceType = svc.GetType(),
+                    MessageType = type.GetGenericArguments()[0],
+                    MessageTypeName = type.GetGenericArguments()[0].Name,
+                    Method = type.GetMethod("Process"),
+                    FailMethod= type.GetMethod("OnFail")
                 });
 
             return consumerDefinitions;

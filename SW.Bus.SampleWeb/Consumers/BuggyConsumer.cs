@@ -16,7 +16,8 @@ namespace SW.Bus.SampleWeb.Consumers
             //     Console.WriteLine($"person {message.Name} process succeeded");
             //     return Task.CompletedTask;
             // }
-            throw new Exception("bad consumer!");
+            //throw new Exception("bad consumer!");
+            return Task.CompletedTask;
         }
     }
 }

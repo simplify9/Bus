@@ -31,24 +31,25 @@ namespace SW.Bus.SampleWeb
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddMemoryCache();
             services.AddControllers().AddJsonOptions(config =>
             {
                 config.JsonSerializerOptions.PropertyNamingPolicy = null;
             });
 
-            services.AddBus(config => 
+            services.AddBus(config =>
             {
+                config.ApplicationName = "TestApp";
                 config.Token.Key = Configuration["Token:Key"];
                 config.Token.Issuer  = Configuration["Token:Issuer"];
                 config.Token.Audience = Configuration["Token:Audience"];
 
             });
-            services.AddBusPublish();
-            services.AddBusConsume();
             services.AddCqApi();
             services.AddRazorPages();
             services.AddScoped<RequestContext>();
-
+            services.AddBusPublish();
+            services.AddBusConsume();
             services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).
                 AddCookie(options =>
                 {

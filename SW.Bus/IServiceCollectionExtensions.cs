@@ -5,6 +5,7 @@ using RabbitMQ.Client;
 using SW.HttpExtensions;
 using SW.PrimitiveTypes;
 using System;
+using System.Linq;
 using System.Reflection;
 
 namespace SW.Bus
@@ -47,11 +48,14 @@ namespace SW.Bus
                 ClientProvidedName =$"{Assembly.GetCallingAssembly().GetName().Name} Exchange Declarer"
             };
 
+            
             using var conn = factory.CreateConnection();
             using var model = conn.CreateModel();
 
             model.ExchangeDeclare(busOptions.ProcessExchange, ExchangeType.Direct, true);
             model.ExchangeDeclare(busOptions.DeadLetterExchange, ExchangeType.Direct, true);
+            model.ExchangeDeclare(busOptions.NodeExchange, ExchangeType.Direct, true);
+            model.ExchangeDeclare(busOptions.NodeDeadLetterExchange, ExchangeType.Direct, true);
 
             model.Close();
             conn.Close();
@@ -63,7 +67,8 @@ namespace SW.Bus
         {
             var sp = services.BuildServiceProvider();
             var rabbitUrl = sp.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
-
+            var busOptions = sp.GetRequiredService<BusOptions>();
+            
             var factory = new ConnectionFactory
             {
                 Uri = new Uri(rabbitUrl),
@@ -73,10 +78,18 @@ namespace SW.Bus
             var conn = factory.CreateConnection();
             var model = conn.CreateModel();
             
-            services.AddScoped<IPublish, Publisher>(serviceProvider => new Publisher(
+            services.AddScoped(serviceProvider => new BasicPublisher(
                 model,
                 serviceProvider.GetRequiredService<BusOptions>(),
                 serviceProvider.GetRequiredService<RequestContext>()));
+            
+            services.AddScoped<IPublish, Publisher>(serviceProvider => new Publisher(
+                serviceProvider.GetRequiredService<BasicPublisher>(),
+                busOptions.ProcessExchange));
+            
+            services.AddScoped<IBroadcast, Broadcaster>(serviceProvider => new Broadcaster(
+                serviceProvider.GetRequiredService<BasicPublisher>(),
+                busOptions.NodeExchange, busOptions.NodeRoutingKey ));
 
             return services;
         }
@@ -99,6 +112,11 @@ namespace SW.Bus
             services.Scan(scan => scan
                 .FromAssemblies(assemblies)
                 .AddClasses(classes => classes.AssignableTo(typeof(IConsume<>)))
+                .AsImplementedInterfaces().AsSelf().WithScopedLifetime());
+            
+            services.Scan(scan => scan
+                .FromAssemblies(assemblies)
+                .AddClasses(classes => classes.AssignableTo(typeof(IListen<>)))
                 .AsImplementedInterfaces().AsSelf().WithScopedLifetime());
 
             var clientProvidedName = $"{Assembly.GetCallingAssembly().GetName().Name} Consumer";
@@ -123,6 +141,7 @@ namespace SW.Bus
             services.AddSingleton<ConsumerDiscovery>();
             services.AddSingleton<ConsumerRunner>();
 
+            
             return services;
         }
     }
