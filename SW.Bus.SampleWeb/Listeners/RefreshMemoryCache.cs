@@ -19,7 +19,7 @@ public class RefreshMemoryCache : IListen<InvalidateSomeCacheMessage>
     {
         var sourceNode = context.Values.First(v => v.Type == RequestValueType.ServiceBusValue && v.Name == "SourceNodeId");
         Console.WriteLine(sourceNode.Value);
-        throw new Exception("sw");
+        
         return Task.CompletedTask;
     }
 }

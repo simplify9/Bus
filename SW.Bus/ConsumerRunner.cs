@@ -209,8 +209,7 @@ namespace SW.Bus
                 correlationHeader = Encoding.UTF8.GetString((byte[])correlationIdHeaderBytes);
             }
 
-            var requestValues = new List<RequestValue>
-                { new("RemainingRetries", remainingRetries.ToString(), RequestValueType.ServiceBusValue) };
+            var requestValues = new List<RequestValue> { remainingRetriesValue };
             
             if (sourceNodeIdValue !=null)
                 requestValues.Add(sourceNodeIdValue);
