@@ -24,6 +24,8 @@ namespace SW.Bus
         public string MessageTypeName { get; set; }
         public MethodInfo Method { get; set; }
         public int RetryCount => queueOptions?.RetryCount ?? busOptions.DefaultRetryCount;
+        public ushort MaxPriority => queueOptions?.MaxPriority ?? busOptions.MaxPriority;
+
         public uint RetryAfter => queueOptions?.RetryAfterSeconds ?? busOptions.DefaultRetryAfter;
         public ushort QueuePrefetch => queueOptions?.Prefetch ?? busOptions.DefaultQueuePrefetch;
         public string NakedQueueName { get; private set; }
@@ -44,7 +46,8 @@ namespace SW.Bus
         {
             { "x-dead-letter-exchange", busOptions.DeadLetterExchange },
             { "x-dead-letter-routing-key", RetryRoutingKey },
-            
+            { "x-max-priority", RetryRoutingKey },
+
         };
 
         public static IDictionary<string, object> BadArgs => new Dictionary<string, object>
