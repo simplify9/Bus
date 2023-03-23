@@ -1,31 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Security.Claims;
-using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using RabbitMQ.Client;
-using SW.HttpExtensions;
 using SW.PrimitiveTypes;
 
 namespace SW.Bus;
-
-public interface IBroadcast
-{
-    Task Broadcast<TMessage>(TMessage message);
-    Task RefreshConsumers();
-}
-
-public interface IListenGenericBase
-{
-}
-
-public interface IListen<TMessage> : IListenGenericBase where TMessage : class
-{
-    Task Process(TMessage message);
-    Task OnFail(Exception ex) => Task.CompletedTask;
-}
-
 internal class Broadcaster : IBroadcast
 {
     internal const string RefreshConsumersMessageBody = "refresh_consumers";
