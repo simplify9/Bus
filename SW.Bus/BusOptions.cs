@@ -66,13 +66,14 @@ namespace SW.Bus
         public string NodeDeadLetterExchange =>
             $"{versionPrefix}{environment}{(string.IsNullOrWhiteSpace(ApplicationName) ? "" : $".{ApplicationName}")}.node.deadletter".ToLower();
 
-        public void AddQueueOption(string queueName, ushort? prefetch = null, int? retryCount = null, uint? retryAfterSeconds = null)
+        public void AddQueueOption(string queueName, ushort? prefetch = null, int? retryCount = null, uint? retryAfterSeconds = null,int? priority = null)
         {
             Options[queueName.ToLower()] = new QueueOptions
             {
                 Prefetch = prefetch,
                 RetryCount = retryCount,
-                RetryAfterSeconds = retryAfterSeconds
+                RetryAfterSeconds = retryAfterSeconds,
+                Priority = priority
             };
         }
 
