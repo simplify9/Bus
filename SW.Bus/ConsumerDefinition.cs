@@ -51,6 +51,7 @@ namespace SW.Bus
         {
             { "x-message-ttl", (uint)TimeSpan.FromDays(7).TotalMilliseconds }
         };
+        public IDictionary<string, object> ConsumerArgs => queueOptions?.ConsumerArgs;
     }
 
 }

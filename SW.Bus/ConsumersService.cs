@@ -160,8 +160,7 @@ namespace SW.Bus
 
             model.BasicQos(0, consumerDefinition.QueuePrefetch, false);
 
-            model.BasicConsume(consumerDefinition.QueueName, false, consumer);
-            
+            model.BasicConsume(consumerDefinition.QueueName,  false, "", consumerDefinition.ConsumerArgs,consumer );
             
         }
         
