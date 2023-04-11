@@ -49,7 +49,7 @@ namespace SW.Bus.SampleWeb
             services.AddRazorPages();
             services.AddScoped<RequestContext>();
             services.AddBusPublish();
-            services.AddBusConsume();
+            services.AddBusListeners();
             services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).
                 AddCookie(options =>
                 {

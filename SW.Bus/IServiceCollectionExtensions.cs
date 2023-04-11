@@ -41,14 +41,14 @@ namespace SW.Bus
             {
                 throw new BusException("Connection string named 'RabbitMQ' is required.");
             }
-            
+
             var factory = new ConnectionFactory
             {
                 Uri = new Uri(rabbitUrl),
-                ClientProvidedName =$"{Assembly.GetCallingAssembly().GetName().Name} Exchange Declarer"
+                ClientProvidedName = $"{Assembly.GetCallingAssembly().GetName().Name} Exchange Declarer"
             };
 
-            
+
             using var conn = factory.CreateConnection();
             using var model = conn.CreateModel();
 
@@ -68,7 +68,7 @@ namespace SW.Bus
             var sp = services.BuildServiceProvider();
             var rabbitUrl = sp.GetRequiredService<IConfiguration>().GetConnectionString("RabbitMQ");
             var busOptions = sp.GetRequiredService<BusOptions>();
-            
+
             var factory = new ConnectionFactory
             {
                 Uri = new Uri(rabbitUrl),
@@ -77,21 +77,18 @@ namespace SW.Bus
 
             var conn = factory.CreateConnection();
             var model = conn.CreateModel();
-            
-            services.AddScoped(serviceProvider => new BasicPublisher(
+
+            return services.AddScoped(serviceProvider => new BasicPublisher(
                 model,
                 serviceProvider.GetRequiredService<BusOptions>(),
-                serviceProvider.GetRequiredService<RequestContext>()));
-            
-            services.AddScoped<IPublish, Publisher>(serviceProvider => new Publisher(
+                serviceProvider.GetRequiredService<RequestContext>()))
+            .AddScoped<IPublish, Publisher>(serviceProvider => new Publisher(
                 serviceProvider.GetRequiredService<BasicPublisher>(),
-                busOptions.ProcessExchange));
-            
-            services.AddScoped<IBroadcast, Broadcaster>(serviceProvider => new Broadcaster(
+                busOptions.ProcessExchange))
+            .AddScoped<IBroadcast, Broadcaster>(serviceProvider => new Broadcaster(
                 serviceProvider.GetRequiredService<BasicPublisher>(),
-                busOptions.NodeExchange, busOptions.NodeRoutingKey ));
+                busOptions.NodeExchange, busOptions.NodeRoutingKey));
 
-            return services;
         }
 
         public static IServiceCollection AddBusPublishMock(this IServiceCollection services)
@@ -100,25 +97,48 @@ namespace SW.Bus
             return services;
         }
 
+        /// <summary>
+        /// Registers consumers and listeners
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="assemblies"></param>
+        /// <returns></returns>
         public static IServiceCollection AddBusConsume(this IServiceCollection services, params Assembly[] assemblies)
         {
-            if (assemblies.Length == 0) assemblies = new[] {Assembly.GetCallingAssembly()};
+            if (assemblies.Length == 0) assemblies = new[] { Assembly.GetCallingAssembly() };
 
-            services.Scan(scan => scan
+            return services.Scan(scan => scan
                 .FromAssemblies(assemblies)
                 .AddClasses(classes => classes.AssignableTo<IConsume>())
-                .As<IConsume>().AsSelf().WithScopedLifetime());
-
-            services.Scan(scan => scan
+                .As<IConsume>().AsSelf().WithScopedLifetime())
+            .Scan(scan => scan
                 .FromAssemblies(assemblies)
                 .AddClasses(classes => classes.AssignableTo(typeof(IConsume<>)))
-                .AsImplementedInterfaces().AsSelf().WithScopedLifetime());
+                .AsImplementedInterfaces().AsSelf().WithScopedLifetime())
+            .RegisterListeners(assemblies)
+            .AddConsumerService();
+        }
+
+        /// <summary>
+        /// Registers listeners only
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="assemblies"></param>
+        /// <returns></returns>
+        public static IServiceCollection AddBusListeners(this IServiceCollection services, params Assembly[] assemblies)
+        {
+            if (assemblies.Length == 0) assemblies = new[] { Assembly.GetCallingAssembly() };
             
-            services.Scan(scan => scan
+            return services.Scan(scan => scan
                 .FromAssemblies(assemblies)
                 .AddClasses(classes => classes.AssignableTo(typeof(IListen<>)))
-                .AsImplementedInterfaces().AsSelf().WithScopedLifetime());
+                .AsImplementedInterfaces().AsSelf().WithScopedLifetime())
+            .AddConsumerService();
+        }
 
+
+        private static IServiceCollection AddConsumerService(this IServiceCollection services)
+        {
             var clientProvidedName = $"{Assembly.GetCallingAssembly().GetName().Name} Consumer";
             services.AddSingleton(sp =>
             {
@@ -140,9 +160,13 @@ namespace SW.Bus
             services.AddHostedService<ConsumersService>();
             services.AddSingleton<ConsumerDiscovery>();
             services.AddSingleton<ConsumerRunner>();
-
-            
             return services;
         }
+
+        private static IServiceCollection RegisterListeners(this IServiceCollection services, Assembly[] assemblies) =>
+            services.Scan(scan => scan
+                .FromAssemblies(assemblies)
+                .AddClasses(classes => classes.AssignableTo(typeof(IListen<>)))
+                .AsImplementedInterfaces().AsSelf().WithScopedLifetime());
     }
 }
