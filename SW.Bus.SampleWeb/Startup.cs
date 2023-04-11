@@ -19,6 +19,10 @@ using SW.PrimitiveTypes;
 
 namespace SW.Bus.SampleWeb 
 {
+    public class AppSettings
+    {
+        public string BackgroundProcess { get; set; } = "all";
+    }
     public class Startup
     {
         public Startup(IConfiguration configuration)
@@ -48,8 +52,19 @@ namespace SW.Bus.SampleWeb
             services.AddCqApi();
             services.AddRazorPages();
             services.AddScoped<RequestContext>();
+            var appSettings = new AppSettings();
+            Configuration.Bind(nameof(AppSettings), appSettings);
             services.AddBusPublish();
-            services.AddBusConsume();
+            switch (appSettings.BackgroundProcess?.ToLower())
+            {
+                case "all":
+                    services.AddBusConsume();
+                    break;
+                case "broadcast":
+                    services.AddBusListen();
+                    break;
+            }
+            services.AddBusListen(); 
             services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).
                 AddCookie(options =>
                 {
