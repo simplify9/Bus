@@ -10,10 +10,6 @@ using System.Reflection;
 
 namespace SW.Bus
 {
-    internal class AddBus
-    {
-    }
-
     public static class IServiceCollectionExtensions
     {
         public static IServiceCollection AddBus(this IServiceCollection services, Action<BusOptions> configure = null,
@@ -125,7 +121,7 @@ namespace SW.Bus
         /// <param name="services"></param>
         /// <param name="assemblies"></param>
         /// <returns></returns>
-        public static IServiceCollection AddBusListeners(this IServiceCollection services, params Assembly[] assemblies)
+        public static IServiceCollection AddBusListen(this IServiceCollection services, params Assembly[] assemblies)
         {
             if (assemblies.Length == 0) assemblies = new[] { Assembly.GetCallingAssembly() };
             
