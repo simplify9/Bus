@@ -182,6 +182,8 @@ namespace SW.Bus
                 RequestValueType.ServiceBusValue);
             
             RequestValue sourceNodeIdValue = null;
+            var nodeIdValue = new RequestValue("NodeId", busOptions.NodeId, RequestValueType.ServiceBusValue);
+            
             if (basicProperties.Headers != null &&
                 basicProperties.Headers.TryGetValue(BusOptions.SourceNodeIdHeaderName, out var sourceNodeIdBytes))
             {
@@ -209,7 +211,7 @@ namespace SW.Bus
                 correlationHeader = Encoding.UTF8.GetString((byte[])correlationIdHeaderBytes);
             }
 
-            var requestValues = new List<RequestValue> { remainingRetriesValue };
+            var requestValues = new List<RequestValue> { nodeIdValue, remainingRetriesValue };
             
             if (sourceNodeIdValue !=null)
                 requestValues.Add(sourceNodeIdValue);
