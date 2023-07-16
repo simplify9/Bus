@@ -126,7 +126,7 @@ namespace SW.Bus
                     svc = scope.ServiceProvider.GetRequiredService(listenerDefinition.ServiceType);
                     processMethod = listenerDefinition.Method;
                     failMethod = listenerDefinition.FailMethod;
-                    var messageObject = JsonConvert.DeserializeObject(message, listenerDefinition.MessageType);
+                    var messageObject = JsonConvert.DeserializeObject(consumerMessage.Message, listenerDefinition.MessageType);
                     await (Task)processMethod.Invoke(svc, new[] { messageObject });
                 }
 
@@ -196,6 +196,7 @@ namespace SW.Bus
             if (requestContext == null || !busOptions.Token.IsValid || basicProperties.Headers == null ||
                 !basicProperties.Headers.TryGetValue(RequestContext.UserHeaderName, out var userHeaderBytes))
             {
+                requestContext?.AddValue(nodeIdValue);
                 requestContext?.AddValue(remainingRetriesValue);
                 if (sourceNodeIdValue != null) requestContext?.AddValue(sourceNodeIdValue);
                 return;
