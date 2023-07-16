@@ -126,7 +126,7 @@ namespace SW.Bus
                     svc = scope.ServiceProvider.GetRequiredService(listenerDefinition.ServiceType);
                     processMethod = listenerDefinition.Method;
                     failMethod = listenerDefinition.FailMethod;
-                    var messageObject = JsonConvert.DeserializeObject(message, listenerDefinition.MessageType);
+                    var messageObject = JsonConvert.DeserializeObject(consumerMessage.Message, listenerDefinition.MessageType);
                     await (Task)processMethod.Invoke(svc, new[] { messageObject });
                 }
 
@@ -182,6 +182,8 @@ namespace SW.Bus
                 RequestValueType.ServiceBusValue);
             
             RequestValue sourceNodeIdValue = null;
+            var nodeIdValue = new RequestValue("NodeId", busOptions.NodeId, RequestValueType.ServiceBusValue);
+            
             if (basicProperties.Headers != null &&
                 basicProperties.Headers.TryGetValue(BusOptions.SourceNodeIdHeaderName, out var sourceNodeIdBytes))
             {
@@ -194,6 +196,7 @@ namespace SW.Bus
             if (requestContext == null || !busOptions.Token.IsValid || basicProperties.Headers == null ||
                 !basicProperties.Headers.TryGetValue(RequestContext.UserHeaderName, out var userHeaderBytes))
             {
+                requestContext?.AddValue(nodeIdValue);
                 requestContext?.AddValue(remainingRetriesValue);
                 if (sourceNodeIdValue != null) requestContext?.AddValue(sourceNodeIdValue);
                 return;
@@ -209,7 +212,7 @@ namespace SW.Bus
                 correlationHeader = Encoding.UTF8.GetString((byte[])correlationIdHeaderBytes);
             }
 
-            var requestValues = new List<RequestValue> { remainingRetriesValue };
+            var requestValues = new List<RequestValue> { nodeIdValue, remainingRetriesValue };
             
             if (sourceNodeIdValue !=null)
                 requestValues.Add(sourceNodeIdValue);
